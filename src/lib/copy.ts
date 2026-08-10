@@ -53,10 +53,30 @@ export const copy = {
     deleteError: "Não foi possível excluir o lançamento",
     editEntry: "Editar lançamento",
     deleteEntry: "Excluir lançamento",
+    confirmDelete: "Excluir",
   },
   calendar: {
     newEntry: "Novo lançamento",
     updating: "Atualizando calendário...",
     loadError: "Não foi possível carregar o calendário",
+  },
+  period: {
+    income: "Receitas no período",
+    expense: "Despesas no período",
+    net: "Saldo do período",
+  },
+  toast: {
+    entryCreated: "Lançamento criado",
+    entryUpdated: "Lançamento atualizado",
+    entryDeleted: "Lançamento excluído",
+    genericError: "Algo deu errado. Tente novamente.",
+  },
+  deleteConfirm: {
+    title: "Excluir lançamento?",
+    description:
+      "Esta ação não pode ser desfeita. O lançamento será removido permanentemente.",
+    cancel: "Cancelar",
+    confirm: "Excluir",
+    deleting: "Excluindo...",
   },
 } as const;
