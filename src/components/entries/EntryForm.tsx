@@ -18,8 +18,8 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select";
+import { copy } from "@/lib/copy";
 import type { ActionResult, CategoryDTO, TransactionDTO } from "@/types";
 
 interface EntryFormProps {
@@ -35,6 +35,18 @@ interface EntryFormProps {
 
 interface EntryFormFieldsProps extends EntryFormProps {
   formKey: string;
+}
+
+function CategoryOption({ category }: { category: CategoryDTO }) {
+  return (
+    <span className="flex items-center gap-2">
+      <span
+        className="size-2 shrink-0 rounded-full"
+        style={{ backgroundColor: category.color }}
+      />
+      {category.name}
+    </span>
+  );
 }
 
 function EntryFormFields({
@@ -71,6 +83,10 @@ function EntryFormFields({
     ? categoryId
     : (filteredCategories[0]?.id ?? "");
 
+  const selectedCategory = filteredCategories.find(
+    (category) => category.id === selectedCategoryId,
+  );
+
   const handleTypeChange = (value: TransactionType | null) => {
     if (!value) return;
     setType(value);
@@ -97,7 +113,7 @@ function EntryFormFields({
         : await createAction(payload);
 
       if (!result.success || !result.data) {
-        setError(result.error ?? "Could not save entry");
+        setError(result.error ?? copy.entry.saveError);
         return;
       }
 
@@ -108,45 +124,53 @@ function EntryFormFields({
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{transaction ? "Edit entry" : "New entry"}</DialogTitle>
-        <DialogDescription>
-          Record an income or expense for your calendar.
-        </DialogDescription>
+        <DialogTitle>
+          {transaction ? copy.entry.edit : copy.entry.new}
+        </DialogTitle>
+        <DialogDescription>{copy.entry.description}</DialogDescription>
       </DialogHeader>
 
       <form onSubmit={handleSubmit} className="space-y-4" data-testid="entry-form">
         <div className="space-y-2">
-          <Label htmlFor="entry-type">Type</Label>
+          <Label htmlFor="entry-type">{copy.entry.type}</Label>
           <Select value={type} onValueChange={handleTypeChange}>
-            <SelectTrigger id="entry-type">
-              <SelectValue />
+            <SelectTrigger id="entry-type" className="w-full">
+              <span>
+                {type === "INCOME" ? copy.entry.income : copy.entry.expense}
+              </span>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="INCOME">Income</SelectItem>
-              <SelectItem value="EXPENSE">Expense</SelectItem>
+              <SelectItem value="INCOME">{copy.entry.income}</SelectItem>
+              <SelectItem value="EXPENSE">{copy.entry.expense}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="entry-amount">Amount</Label>
+          <Label htmlFor="entry-amount">{copy.entry.amount}</Label>
+          <div className="relative">
+            <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground">
+              R$
+            </span>
             <Input
               id="entry-amount"
               data-testid="entry-amount"
-            type="number"
-            min="0.01"
-            step="0.01"
-            required
-            value={amount}
-            onChange={(event) => setAmount(event.target.value)}
-          />
+              type="number"
+              min="0.01"
+              step="0.01"
+              required
+              value={amount}
+              onChange={(event) => setAmount(event.target.value)}
+              className="pl-10"
+            />
+          </div>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="entry-date">Date</Label>
-            <Input
-              id="entry-date"
-              data-testid="entry-date"
+          <Label htmlFor="entry-date">{copy.entry.date}</Label>
+          <Input
+            id="entry-date"
+            data-testid="entry-date"
             type="date"
             required
             value={entryDate}
@@ -155,18 +179,24 @@ function EntryFormFields({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="entry-category">Category</Label>
+          <Label htmlFor="entry-category">{copy.entry.category}</Label>
           <Select
             value={selectedCategoryId}
             onValueChange={(value) => setCategoryId(value ?? "")}
           >
-            <SelectTrigger id="entry-category">
-              <SelectValue placeholder="Select a category" />
+            <SelectTrigger id="entry-category" className="w-full">
+              {selectedCategory ? (
+                <CategoryOption category={selectedCategory} />
+              ) : (
+                <span className="text-muted-foreground">
+                  {copy.entry.categoryPlaceholder}
+                </span>
+              )}
             </SelectTrigger>
             <SelectContent>
               {filteredCategories.map((category) => (
                 <SelectItem key={category.id} value={category.id}>
-                  {category.name}
+                  <CategoryOption category={category} />
                 </SelectItem>
               ))}
             </SelectContent>
@@ -174,13 +204,13 @@ function EntryFormFields({
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="entry-description">Description</Label>
-            <Input
-              id="entry-description"
-              data-testid="entry-description"
+          <Label htmlFor="entry-description">{copy.entry.note}</Label>
+          <Input
+            id="entry-description"
+            data-testid="entry-description"
             value={description}
             onChange={(event) => setDescription(event.target.value)}
-            placeholder="Optional note"
+            placeholder={copy.entry.notePlaceholder}
           />
         </div>
 
@@ -192,10 +222,18 @@ function EntryFormFields({
             variant="outline"
             onClick={() => onOpenChange(false)}
           >
-            Cancel
+            {copy.entry.cancel}
           </Button>
-          <Button type="submit" data-testid="entry-submit" disabled={isPending || !selectedCategoryId}>
-            {isPending ? "Saving..." : transaction ? "Update" : "Create"}
+          <Button
+            type="submit"
+            data-testid="entry-submit"
+            disabled={isPending || !selectedCategoryId}
+          >
+            {isPending
+              ? copy.entry.saving
+              : transaction
+                ? copy.entry.update
+                : copy.entry.create}
           </Button>
         </DialogFooter>
       </form>

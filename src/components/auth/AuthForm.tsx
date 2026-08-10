@@ -1,7 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
 import Link from "next/link";
+import { useActionState } from "react";
 import { loginAction, registerAction } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { copy } from "@/lib/copy";
 import type { ActionResult } from "@/types";
 
 const initialState: ActionResult = { success: false };
@@ -28,23 +29,25 @@ export function AuthForm({ mode }: AuthFormProps) {
   return (
     <Card className="w-full max-w-md">
       <CardHeader>
-        <CardTitle>{mode === "login" ? "Welcome back" : "Create your account"}</CardTitle>
+        <CardTitle>
+          {mode === "login" ? copy.auth.loginTitle : copy.auth.registerTitle}
+        </CardTitle>
         <CardDescription>
           {mode === "login"
-            ? "Sign in to manage your daily finances."
-            : "Start tracking income and expenses on your calendar."}
+            ? copy.auth.loginDescription
+            : copy.auth.registerDescription}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <form action={formAction} className="space-y-4">
           {mode === "register" && (
             <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">{copy.auth.name}</Label>
               <Input id="name" name="name" required autoComplete="name" />
             </div>
           )}
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email">{copy.auth.email}</Label>
             <Input
               id="email"
               name="email"
@@ -54,7 +57,7 @@ export function AuthForm({ mode }: AuthFormProps) {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password">{copy.auth.password}</Label>
             <Input
               id="password"
               name="password"
@@ -69,27 +72,38 @@ export function AuthForm({ mode }: AuthFormProps) {
           {state.error && (
             <p className="text-sm text-destructive">{state.error}</p>
           )}
-          <Button type="submit" className="w-full" data-testid="login-submit" disabled={pending}>
+          <Button
+            type="submit"
+            className="w-full"
+            data-testid="login-submit"
+            disabled={pending}
+          >
             {pending
-              ? "Please wait..."
+              ? copy.auth.pleaseWait
               : mode === "login"
-                ? "Sign in"
-                : "Create account"}
+                ? copy.auth.signIn
+                : copy.auth.createAccount}
           </Button>
         </form>
         <p className="mt-4 text-center text-sm text-muted-foreground">
           {mode === "login" ? (
             <>
-              No account yet?{" "}
-              <Link href="/register" className="text-primary underline-offset-4 hover:underline">
-                Sign up
+              {copy.auth.noAccount}{" "}
+              <Link
+                href="/register"
+                className="text-primary underline-offset-4 hover:underline"
+              >
+                {copy.auth.signUp}
               </Link>
             </>
           ) : (
             <>
-              Already have an account?{" "}
-              <Link href="/login" className="text-primary underline-offset-4 hover:underline">
-                Sign in
+              {copy.auth.hasAccount}{" "}
+              <Link
+                href="/login"
+                className="text-primary underline-offset-4 hover:underline"
+              >
+                {copy.auth.signIn}
               </Link>
             </>
           )}

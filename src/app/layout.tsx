@@ -8,13 +8,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Pé-de-meia | Finance Calendar",
-  description: "Track daily income and expenses on a simple finance calendar.",
+  title: "Pé-de-meia | Calendário financeiro",
+  description: "Acompanhe receitas e despesas diárias em um calendário simples.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${inter.variable} h-full`}>
+    <html lang="pt-BR" className={`${inter.variable} h-full`}>
       <body className="min-h-full font-sans antialiased">{children}</body>
     </html>
   );

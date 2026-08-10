@@ -8,15 +8,17 @@ import { prisma } from "@/lib/db";
 import { seedDefaultCategories } from "@/lib/services/categories";
 import type { ActionResult } from "@/types";
 
+import { copy } from "@/lib/copy";
+
 const registerSchema = z.object({
-  name: z.string().trim().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
+  name: z.string().trim().min(2, "O nome deve ter pelo menos 2 caracteres"),
+  email: z.string().email("E-mail inválido"),
+  password: z.string().min(8, "A senha deve ter pelo menos 8 caracteres"),
 });
 
 const loginSchema = z.object({
-  email: z.string().email("Invalid email address"),
-  password: z.string().min(1, "Password is required"),
+  email: z.string().email("E-mail inválido"),
+  password: z.string().min(1, "A senha é obrigatória"),
 });
 
 export async function registerAction(
@@ -32,14 +34,14 @@ export async function registerAction(
   if (!parsed.success) {
     return {
       success: false,
-      error: parsed.error.issues[0]?.message ?? "Invalid input",
+      error: parsed.error.issues[0]?.message ?? "Dados inválidos",
     };
   }
 
   const email = parsed.data.email.toLowerCase();
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
-    return { success: false, error: "An account with this email already exists" };
+    return { success: false, error: "Já existe uma conta com este e-mail" };
   }
 
   const passwordHash = await bcrypt.hash(parsed.data.password, 12);
@@ -62,7 +64,7 @@ export async function registerAction(
     });
   } catch (error) {
     if (error instanceof AuthError) {
-      return { success: false, error: "Could not sign in after registration" };
+      return { success: false, error: "Não foi possível entrar após o cadastro" };
     }
     throw error;
   }
@@ -82,7 +84,7 @@ export async function loginAction(
   if (!parsed.success) {
     return {
       success: false,
-      error: parsed.error.issues[0]?.message ?? "Invalid input",
+      error: parsed.error.issues[0]?.message ?? "Dados inválidos",
     };
   }
 
@@ -94,7 +96,7 @@ export async function loginAction(
     });
   } catch (error) {
     if (error instanceof AuthError) {
-      return { success: false, error: "Invalid email or password" };
+      return { success: false, error: copy.auth.invalidCredentials };
     }
     throw error;
   }

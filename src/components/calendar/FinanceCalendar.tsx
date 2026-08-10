@@ -1,39 +1,53 @@
 "use client";
 
-import type { DayCellContentArg } from "@fullcalendar/core";
+import type { DatesSetArg, DayCellContentArg } from "@fullcalendar/core";
+import ptBrLocale from "@fullcalendar/core/locales/pt-br";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import FullCalendar from "@fullcalendar/react";
-import { format } from "date-fns";
+import { format, subDays } from "date-fns";
 import { Plus } from "lucide-react";
-import { useCallback, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   createTransactionAction,
-  fetchMonthDataAction,
+  fetchVisibleRangeDataAction,
   updateTransactionAction,
 } from "@/app/actions/transactions";
 import { DayDetailSheet } from "@/components/calendar/DayDetailSheet";
 import { EntryForm } from "@/components/entries/EntryForm";
 import { Button } from "@/components/ui/button";
+import { copy } from "@/lib/copy";
 import { formatCurrency } from "@/lib/format";
 import type { CategoryDTO, DailySummary } from "@/types";
 
 interface FinanceCalendarProps {
   categories: CategoryDTO[];
   initialSummaries: DailySummary[];
-  initialYear: number;
-  initialMonth: number;
 }
+
+type VisibleRange = {
+  start: string;
+  end: string;
+};
 
 function toDateKey(date: Date): string {
   return format(date, "yyyy-MM-dd");
 }
 
+function toVisibleRange(arg: DatesSetArg): VisibleRange {
+  return {
+    start: toDateKey(arg.start),
+    end: toDateKey(subDays(arg.end, 1)),
+  };
+}
+
+function rangeKey(range: VisibleRange): string {
+  return `${range.start}_${range.end}`;
+}
+
 export function FinanceCalendar({
   categories,
   initialSummaries,
-  initialYear,
-  initialMonth,
 }: FinanceCalendarProps) {
   const [summaries, setSummaries] = useState<DailySummary[]>(initialSummaries);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -42,46 +56,86 @@ export function FinanceCalendar({
   const [entryDate, setEntryDate] = useState<string>(
     format(new Date(), "yyyy-MM-dd"),
   );
-  const [visibleRange, setVisibleRange] = useState({
-    year: initialYear,
-    month: initialMonth,
-  });
+  const [visibleRange, setVisibleRange] = useState<VisibleRange | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const skipInitialFetch = useRef(true);
+  const visibleRangeRef = useRef<VisibleRange | null>(null);
 
   const summaryMap = useMemo(() => {
     return new Map(summaries.map((summary) => [summary.date, summary]));
   }, [summaries]);
 
-  const loadMonth = useCallback((year: number, month: number) => {
-    startTransition(async () => {
-      const result = await fetchMonthDataAction(year, month);
-      if (result.success && result.data) {
-        setSummaries(result.data.dailySummaries);
-        setError(null);
-      } else {
-        setError(result.error ?? "Failed to load calendar data");
+  const applyRangeData = useCallback(
+    (result: Awaited<ReturnType<typeof fetchVisibleRangeDataAction>>) => {
+      startTransition(() => {
+        if (result.success && result.data) {
+          setSummaries(result.data.dailySummaries);
+          setError(null);
+        } else {
+          setError(result.error ?? copy.calendar.loadError);
+        }
+      });
+    },
+    [],
+  );
+
+  const reloadVisibleRange = useCallback(async () => {
+    const range = visibleRangeRef.current;
+    if (!range) {
+      return;
+    }
+
+    setIsLoading(true);
+    const result = await fetchVisibleRangeDataAction(range.start, range.end);
+    applyRangeData(result);
+    setIsLoading(false);
+  }, [applyRangeData]);
+
+  const handleDatesSet = useCallback((arg: DatesSetArg) => {
+    const nextRange = toVisibleRange(arg);
+    visibleRangeRef.current = nextRange;
+
+    setVisibleRange((current) => {
+      if (current && rangeKey(current) === rangeKey(nextRange)) {
+        return current;
       }
+      return nextRange;
     });
   }, []);
 
-  const handleDatesSet = useCallback(
-    (arg: { start: Date; end: Date; view: { type: string } }) => {
-      const anchor = new Date(arg.start);
-      anchor.setDate(anchor.getDate() + 7);
-      const year = anchor.getFullYear();
-      const month = anchor.getMonth() + 1;
+  useEffect(() => {
+    if (!visibleRange) {
+      return;
+    }
 
-      setVisibleRange((current) => {
-        if (current.year === year && current.month === month) {
-          return current;
-        }
-        loadMonth(year, month);
-        return { year, month };
-      });
-    },
-    [loadMonth],
-  );
+    if (skipInitialFetch.current) {
+      skipInitialFetch.current = false;
+      return;
+    }
+
+    let cancelled = false;
+
+    void (async () => {
+      setIsLoading(true);
+      const result = await fetchVisibleRangeDataAction(
+        visibleRange.start,
+        visibleRange.end,
+      );
+
+      if (cancelled) {
+        return;
+      }
+
+      applyRangeData(result);
+      setIsLoading(false);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [visibleRange, applyRangeData]);
 
   const openDay = (dateStr: string) => {
     setSelectedDate(dateStr);
@@ -89,18 +143,20 @@ export function FinanceCalendar({
   };
 
   const handleSavedFromHeader = () => {
-    loadMonth(visibleRange.year, visibleRange.month);
+    void reloadVisibleRange();
     setEntryOpen(false);
   };
 
+  const showLoading = isLoading || isPending;
+
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Finance Calendar</h1>
-          <p className="text-sm text-muted-foreground">
-            Track daily income and expenses at a glance.
-          </p>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {copy.calendarTitle}
+          </h1>
+          <p className="text-sm text-muted-foreground">{copy.calendarSubtitle}</p>
         </div>
         <Button
           data-testid="new-entry-button"
@@ -110,18 +166,19 @@ export function FinanceCalendar({
           }}
         >
           <Plus className="size-4" />
-          New entry
+          {copy.calendar.newEntry}
         </Button>
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
-      {isPending && (
-        <p className="text-sm text-muted-foreground">Updating calendar...</p>
+      {showLoading && (
+        <p className="text-sm text-muted-foreground">{copy.calendar.updating}</p>
       )}
 
-      <div className="rounded-xl border bg-card p-3 shadow-sm [&_.fc]:--fc-border-color:var(--border) [&_.fc-button-primary]:bg-primary [&_.fc-button-primary]:border-primary [&_.fc-toolbar-title]:text-lg [&_.fc-toolbar-title]:font-semibold">
+      <div className="finance-calendar rounded-xl border bg-card p-3 shadow-sm">
         <FullCalendar
           plugins={[dayGridPlugin, interactionPlugin]}
+          locale={ptBrLocale}
           initialView="dayGridMonth"
           headerToolbar={{
             left: "prev,next today",
@@ -138,16 +195,18 @@ export function FinanceCalendar({
 
             return (
               <div className="flex h-full flex-col gap-1 p-1">
-                <div className="text-right text-xs font-medium">{arg.dayNumberText}</div>
+                <div className="text-right text-xs font-medium">
+                  {arg.dayNumberText}
+                </div>
                 {summary && (
                   <div className="space-y-0.5 text-[10px] leading-tight sm:text-xs">
                     {summary.incomeTotal > 0 && (
-                      <div className="text-emerald-600">
+                      <div className="font-medium text-emerald-600">
                         +{formatCurrency(summary.incomeTotal)}
                       </div>
                     )}
                     {summary.expenseTotal > 0 && (
-                      <div className="text-red-600">
+                      <div className="font-medium text-red-600">
                         -{formatCurrency(summary.expenseTotal)}
                       </div>
                     )}
@@ -169,7 +228,7 @@ export function FinanceCalendar({
         onOpenChange={setSheetOpen}
         date={selectedDate}
         categories={categories}
-        onChanged={() => loadMonth(visibleRange.year, visibleRange.month)}
+        onChanged={() => void reloadVisibleRange()}
       />
 
       <EntryForm

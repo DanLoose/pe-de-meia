@@ -7,6 +7,7 @@ import {
   createTransaction,
   deleteTransaction,
   getTransactionsByDate,
+  getTransactionsByDateRange,
   getTransactionsByMonth,
   updateTransaction,
 } from "@/lib/services/transactions";
@@ -38,6 +39,23 @@ export async function fetchMonthDataAction(
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to load month data",
+    };
+  }
+}
+
+export async function fetchVisibleRangeDataAction(
+  start: string,
+  end: string,
+): Promise<ActionResult<MonthData>> {
+  try {
+    const userId = await getSessionUserId();
+    const data = await getTransactionsByDateRange(userId, start, end);
+    return { success: true, data };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error ? error.message : "Failed to load calendar data",
     };
   }
 }
