@@ -1,4 +1,5 @@
 import { logoutAction } from "@/app/actions/auth";
+import { AppNav } from "@/components/layout/AppNav";
 import { BrandLogo } from "@/components/layout/BrandLogo";
 import { Button } from "@/components/ui/button";
 import { copy } from "@/lib/copy";
@@ -13,7 +14,10 @@ export function AppShell({ userEmail, children }: AppShellProps) {
     <div className="min-h-full bg-muted/20">
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-          <BrandLogo />
+          <div className="flex items-center gap-4">
+            <BrandLogo />
+            <AppNav />
+          </div>
           <div className="flex items-center gap-3">
             <p className="hidden max-w-[200px] truncate text-sm text-muted-foreground sm:block">
               {userEmail}

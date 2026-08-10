@@ -10,6 +10,8 @@ import {
   type UpdateTransactionInput,
 } from "@/lib/validators/transaction";
 import type { DailySummary, MonthData, TransactionDTO } from "@/types";
+import { getBudgetSummaryForRange } from "@/lib/services/budgets";
+import { ensureRecurringTransactions } from "@/lib/services/recurring";
 import {
   formatDateOnly,
   getMonthDateRange,
@@ -107,6 +109,11 @@ async function getTransactionsInRange(
   start: Date,
   end: Date,
 ): Promise<MonthData> {
+  const startDate = formatDateOnly(start);
+  const endDate = formatDateOnly(end);
+
+  await ensureRecurringTransactions(userId, startDate, endDate);
+
   const transactions = await prisma.transaction.findMany({
     where: {
       userId,
@@ -120,9 +127,22 @@ async function getTransactionsInRange(
   });
 
   const events = transactions.map(toTransactionDTO);
+  const dailySummaries = buildDailySummaries(events);
+  const expenseTotal = dailySummaries.reduce(
+    (sum, summary) => sum + summary.expenseTotal,
+    0,
+  );
+  const budgetSummary = await getBudgetSummaryForRange(
+    userId,
+    startDate,
+    endDate,
+    expenseTotal,
+  );
+
   return {
     events,
-    dailySummaries: buildDailySummaries(events),
+    dailySummaries,
+    budgetSummary,
   };
 }
 

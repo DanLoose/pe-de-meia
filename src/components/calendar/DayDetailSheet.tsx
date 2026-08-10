@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2, Wallet } from "lucide-react";
 import {
   createTransactionAction,
   deleteTransactionAction,
@@ -19,6 +19,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
@@ -204,9 +205,24 @@ export function DayDetailSheet({
             )}
             {error && <p className="text-sm text-destructive">{error}</p>}
             {!isLoading && transactions.length === 0 && !error && (
-              <p className="text-sm text-muted-foreground">
-                {copy.daySheet.empty}
-              </p>
+              <EmptyState
+                icon={Wallet}
+                title={copy.empty.dayTitle}
+                description={copy.empty.dayDescription}
+                action={
+                  <Button
+                    size="sm"
+                    onClick={() => {
+                      setEditing(null);
+                      setFormOpen(true);
+                    }}
+                    disabled={!date}
+                  >
+                    <Plus className="size-4" />
+                    {copy.daySheet.addEntry}
+                  </Button>
+                }
+              />
             )}
             {transactions.map((transaction) => (
               <div

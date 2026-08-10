@@ -1,9 +1,8 @@
-import { redirect } from "next/navigation";
 import { FinanceCalendar } from "@/components/calendar/FinanceCalendar";
-import { AppShell } from "@/components/layout/AppShell";
 import { auth } from "@/lib/auth";
 import { getCategoriesByUser } from "@/lib/services/categories";
 import { getTransactionsByMonth } from "@/lib/services/transactions";
+import { redirect } from "next/navigation";
 
 export default async function CalendarPage() {
   const session = await auth();
@@ -21,11 +20,10 @@ export default async function CalendarPage() {
   ]);
 
   return (
-    <AppShell userEmail={session.user.email ?? ""}>
-      <FinanceCalendar
-        categories={categories}
-        initialSummaries={monthData.dailySummaries}
-      />
-    </AppShell>
+    <FinanceCalendar
+      categories={categories}
+      initialSummaries={monthData.dailySummaries}
+      initialBudgetSummary={monthData.budgetSummary ?? null}
+    />
   );
 }

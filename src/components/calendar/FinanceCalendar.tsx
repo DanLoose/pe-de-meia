@@ -6,7 +6,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import FullCalendar from "@fullcalendar/react";
 import { format, subDays } from "date-fns";
-import { Loader2, Plus } from "lucide-react";
+import { Loader2, Plus, CalendarDays } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   createTransactionAction,
@@ -17,14 +17,16 @@ import { DayDetailSheet } from "@/components/calendar/DayDetailSheet";
 import { PeriodSummaryBar } from "@/components/calendar/PeriodSummaryBar";
 import { EntryForm } from "@/components/entries/EntryForm";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { copy } from "@/lib/copy";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { CategoryDTO, DailySummary } from "@/types";
+import type { BudgetSummary, CategoryDTO, DailySummary } from "@/types";
 
 interface FinanceCalendarProps {
   categories: CategoryDTO[];
   initialSummaries: DailySummary[];
+  initialBudgetSummary?: BudgetSummary | null;
 }
 
 type VisibleRange = {
@@ -50,8 +52,12 @@ function rangeKey(range: VisibleRange): string {
 export function FinanceCalendar({
   categories,
   initialSummaries,
+  initialBudgetSummary = null,
 }: FinanceCalendarProps) {
   const [summaries, setSummaries] = useState<DailySummary[]>(initialSummaries);
+  const [budgetSummary, setBudgetSummary] = useState<BudgetSummary | null>(
+    initialBudgetSummary,
+  );
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [entryOpen, setEntryOpen] = useState(false);
@@ -74,6 +80,7 @@ export function FinanceCalendar({
       startTransition(() => {
         if (result.success && result.data) {
           setSummaries(result.data.dailySummaries);
+          setBudgetSummary(result.data.budgetSummary ?? null);
           setError(null);
         } else {
           setError(result.error ?? copy.calendar.loadError);
@@ -150,6 +157,9 @@ export function FinanceCalendar({
   };
 
   const showLoading = isLoading || isPending;
+  const hasActivity = summaries.some(
+    (summary) => summary.incomeTotal > 0 || summary.expenseTotal > 0,
+  );
 
   return (
     <div className="space-y-4">
@@ -174,7 +184,26 @@ export function FinanceCalendar({
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <PeriodSummaryBar summaries={summaries} />
+      <PeriodSummaryBar summaries={summaries} budgetSummary={budgetSummary} />
+
+      {!showLoading && !hasActivity && (
+        <EmptyState
+          icon={CalendarDays}
+          title={copy.empty.calendarTitle}
+          description={copy.empty.calendarDescription}
+          action={
+            <Button
+              onClick={() => {
+                setEntryDate(format(new Date(), "yyyy-MM-dd"));
+                setEntryOpen(true);
+              }}
+            >
+              <Plus className="size-4" />
+              {copy.empty.calendarAction}
+            </Button>
+          }
+        />
+      )}
 
       <div className="relative">
         {showLoading && (
