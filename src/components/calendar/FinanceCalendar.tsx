@@ -6,7 +6,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import FullCalendar from "@fullcalendar/react";
 import { format, subDays } from "date-fns";
-import { Plus } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   createTransactionAction,
@@ -14,10 +14,12 @@ import {
   updateTransactionAction,
 } from "@/app/actions/transactions";
 import { DayDetailSheet } from "@/components/calendar/DayDetailSheet";
+import { PeriodSummaryBar } from "@/components/calendar/PeriodSummaryBar";
 import { EntryForm } from "@/components/entries/EntryForm";
 import { Button } from "@/components/ui/button";
 import { copy } from "@/lib/copy";
 import { formatCurrency } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { CategoryDTO, DailySummary } from "@/types";
 
 interface FinanceCalendarProps {
@@ -171,12 +173,25 @@ export function FinanceCalendar({
       </div>
 
       {error && <p className="text-sm text-destructive">{error}</p>}
-      {showLoading && (
-        <p className="text-sm text-muted-foreground">{copy.calendar.updating}</p>
-      )}
 
-      <div className="finance-calendar rounded-xl border bg-card p-3 shadow-sm">
-        <FullCalendar
+      <PeriodSummaryBar summaries={summaries} />
+
+      <div className="relative">
+        {showLoading && (
+          <div
+            data-testid="calendar-loading-overlay"
+            className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-background/60 backdrop-blur-[1px]"
+          >
+            <Loader2 className="size-5 animate-spin text-muted-foreground" />
+          </div>
+        )}
+        <div
+          className={cn(
+            "finance-calendar rounded-xl border bg-card p-3 shadow-sm transition-opacity",
+            showLoading && "pointer-events-none opacity-60",
+          )}
+        >
+          <FullCalendar
           plugins={[dayGridPlugin, interactionPlugin]}
           locale={ptBrLocale}
           initialView="dayGridMonth"
@@ -221,6 +236,7 @@ export function FinanceCalendar({
             );
           }}
         />
+        </div>
       </div>
 
       <DayDetailSheet

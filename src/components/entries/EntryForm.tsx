@@ -20,6 +20,7 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import { copy } from "@/lib/copy";
+import { appToast } from "@/lib/toast";
 import type { ActionResult, CategoryDTO, TransactionDTO } from "@/types";
 
 interface EntryFormProps {
@@ -31,6 +32,7 @@ interface EntryFormProps {
   onSaved: (transaction: TransactionDTO) => void;
   createAction: (input: unknown) => Promise<ActionResult<TransactionDTO>>;
   updateAction: (input: unknown) => Promise<ActionResult<TransactionDTO>>;
+  showSuccessToast?: boolean;
 }
 
 interface EntryFormFieldsProps extends EntryFormProps {
@@ -57,6 +59,7 @@ function EntryFormFields({
   onOpenChange,
   createAction,
   updateAction,
+  showSuccessToast = true,
 }: EntryFormFieldsProps) {
   const [type, setType] = useState<TransactionType>(
     transaction?.type ?? "EXPENSE",
@@ -114,7 +117,16 @@ function EntryFormFields({
 
       if (!result.success || !result.data) {
         setError(result.error ?? copy.entry.saveError);
+        appToast.error(result.error ?? copy.entry.saveError);
         return;
+      }
+
+      if (showSuccessToast) {
+        if (transaction) {
+          appToast.entryUpdated();
+        } else {
+          appToast.entryCreated();
+        }
       }
 
       onSaved(result.data);

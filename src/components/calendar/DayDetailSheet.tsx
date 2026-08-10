@@ -11,6 +11,14 @@ import {
 import { EntryForm } from "@/components/entries/EntryForm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
@@ -21,6 +29,7 @@ import {
 } from "@/components/ui/sheet";
 import { copy } from "@/lib/copy";
 import { formatCurrency, formatDateLabel } from "@/lib/format";
+import { appToast } from "@/lib/toast";
 import type { CategoryDTO, TransactionDTO } from "@/types";
 
 interface DayDetailSheetProps {
@@ -41,21 +50,39 @@ export function DayDetailSheet({
   const [transactions, setTransactions] = useState<TransactionDTO[]>([]);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<TransactionDTO | null>(null);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [loadedDate, setLoadedDate] = useState<string | null>(null);
+  const [isDeleting, startDeleteTransition] = useTransition();
+
+  const isLoading = Boolean(open && date && loadedDate !== date);
 
   useEffect(() => {
-    if (!open || !date) return;
+    if (!open || !date) {
+      return;
+    }
 
-    startTransition(async () => {
+    let cancelled = false;
+
+    void (async () => {
       const result = await fetchDayTransactionsAction(date);
+      if (cancelled) {
+        return;
+      }
+
       if (result.success && result.data) {
         setTransactions(result.data);
+        setLoadedDate(date);
         setError(null);
       } else {
         setError(result.error ?? copy.daySheet.loadError);
+        setLoadedDate(date);
       }
-    });
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [open, date]);
 
   const totals = useMemo(() => {
@@ -73,23 +100,34 @@ export function DayDetailSheet({
     );
   }, [transactions]);
 
-  const handleDelete = (id: string) => {
+  const confirmDelete = () => {
+    if (!pendingDeleteId) {
+      return;
+    }
+
+    const id = pendingDeleteId;
     const previous = transactions;
     setTransactions((current) => current.filter((item) => item.id !== id));
+    setPendingDeleteId(null);
 
-    startTransition(async () => {
+    startDeleteTransition(async () => {
       const result = await deleteTransactionAction(id);
       if (!result.success) {
         setTransactions(previous);
         setError(result.error ?? copy.daySheet.deleteError);
+        appToast.error(result.error ?? copy.daySheet.deleteError);
         return;
       }
+
       setError(null);
+      appToast.entryDeleted();
       onChanged();
     });
   };
 
   const handleSaved = (transaction: TransactionDTO) => {
+    const isUpdate = transactions.some((item) => item.id === transaction.id);
+
     setTransactions((current) => {
       const exists = current.some((item) => item.id === transaction.id);
       if (exists) {
@@ -103,6 +141,11 @@ export function DayDetailSheet({
     });
     setFormOpen(false);
     setEditing(null);
+    if (isUpdate) {
+      appToast.entryUpdated();
+    } else {
+      appToast.entryCreated();
+    }
     onChanged();
   };
 
@@ -154,13 +197,13 @@ export function DayDetailSheet({
           <Separator className="my-4" />
 
           <div className="flex-1 space-y-3 overflow-y-auto pr-1">
-            {isPending && transactions.length === 0 && (
+            {isLoading && transactions.length === 0 && (
               <p className="text-sm text-muted-foreground">
                 {copy.daySheet.loading}
               </p>
             )}
             {error && <p className="text-sm text-destructive">{error}</p>}
-            {!isPending && transactions.length === 0 && !error && (
+            {!isLoading && transactions.length === 0 && !error && (
               <p className="text-sm text-muted-foreground">
                 {copy.daySheet.empty}
               </p>
@@ -212,7 +255,7 @@ export function DayDetailSheet({
                     variant="ghost"
                     size="icon-sm"
                     aria-label={copy.daySheet.deleteEntry}
-                    onClick={() => handleDelete(transaction.id)}
+                    onClick={() => setPendingDeleteId(transaction.id)}
                   >
                     <Trash2 className="size-4" />
                   </Button>
@@ -223,6 +266,41 @@ export function DayDetailSheet({
         </SheetContent>
       </Sheet>
 
+      <Dialog
+        open={pendingDeleteId !== null}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            setPendingDeleteId(null);
+          }
+        }}
+      >
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>{copy.deleteConfirm.title}</DialogTitle>
+            <DialogDescription>{copy.deleteConfirm.description}</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setPendingDeleteId(null)}
+              disabled={isDeleting}
+            >
+              {copy.deleteConfirm.cancel}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              data-testid="confirm-delete-entry"
+              onClick={confirmDelete}
+              disabled={isDeleting}
+            >
+              {isDeleting ? copy.deleteConfirm.deleting : copy.deleteConfirm.confirm}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <EntryForm
         open={formOpen}
         onOpenChange={setFormOpen}
@@ -232,6 +310,7 @@ export function DayDetailSheet({
         onSaved={handleSaved}
         createAction={createTransactionAction}
         updateAction={updateTransactionAction}
+        showSuccessToast={false}
       />
     </>
   );

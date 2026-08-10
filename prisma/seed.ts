@@ -1,19 +1,12 @@
 import "dotenv/config";
 import bcrypt from "bcryptjs";
 import { createPrismaClient } from "../src/lib/db";
+import {
+  DEFAULT_CATEGORIES,
+  LEGACY_CATEGORY_NAME_MAP,
+} from "../src/lib/default-categories";
 
 const prisma = createPrismaClient();
-
-const DEFAULT_CATEGORIES = [
-  { name: "Salary", color: "#22c55e", type: "INCOME" as const },
-  { name: "Freelance", color: "#10b981", type: "INCOME" as const },
-  { name: "Other Income", color: "#14b8a6", type: "INCOME" as const },
-  { name: "Food", color: "#ef4444", type: "EXPENSE" as const },
-  { name: "Rent", color: "#f97316", type: "EXPENSE" as const },
-  { name: "Transport", color: "#eab308", type: "EXPENSE" as const },
-  { name: "Utilities", color: "#a855f7", type: "EXPENSE" as const },
-  { name: "Other Expense", color: "#64748b", type: "EXPENSE" as const },
-];
 
 async function main() {
   const email = "demo@pedemeia.dev";
@@ -40,6 +33,15 @@ async function main() {
         userId: user.id,
       })),
     });
+  } else {
+    for (const [legacyName, localizedName] of Object.entries(
+      LEGACY_CATEGORY_NAME_MAP,
+    )) {
+      await prisma.category.updateMany({
+        where: { userId: user.id, name: legacyName },
+        data: { name: localizedName },
+      });
+    }
   }
 
   console.log("Seed complete.");

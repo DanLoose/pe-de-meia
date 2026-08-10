@@ -30,6 +30,13 @@ test.describe("Finance calendar", () => {
     await expect(page.locator(".fc-daygrid-day")).toHaveCount(35);
   });
 
+  test("shows period summary for the visible range", async ({ page }) => {
+    await expect(page.getByTestId("period-summary-bar")).toBeVisible();
+    await expect(page.getByText(copy.period.income)).toBeVisible();
+    await expect(page.getByText(copy.period.expense)).toBeVisible();
+    await expect(page.getByText(copy.period.net)).toBeVisible();
+  });
+
   test("creates an expense and shows it in the day detail sheet", async ({
     page,
   }) => {
@@ -71,6 +78,8 @@ test.describe("Finance calendar", () => {
       .filter({ hasText: description })
       .getByRole("button", { name: copy.daySheet.deleteEntry })
       .click();
+
+    await page.getByTestId("confirm-delete-entry").click();
 
     await expect(sheet.getByText(description)).not.toBeVisible();
   });
