@@ -128,3 +128,46 @@
     @apply font-sans;
   }
 }
+
+.finance-calendar {
+  --fc-border-color: var(--border);
+  --fc-button-text-color: var(--primary-foreground);
+  --fc-button-bg-color: var(--primary);
+  --fc-button-border-color: var(--primary);
+  --fc-button-hover-bg-color: color-mix(in oklch, var(--primary), white 12%);
+  --fc-button-hover-border-color: var(--primary);
+  --fc-button-active-bg-color: color-mix(in oklch, var(--primary), black 8%);
+  --fc-button-active-border-color: var(--primary);
+  --fc-today-bg-color: color-mix(in oklch, var(--accent), transparent 50%);
+  --fc-page-bg-color: var(--card);
+  --fc-neutral-bg-color: var(--muted);
+  --fc-event-text-color: var(--foreground);
+}
+
+.finance-calendar .fc-toolbar-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.finance-calendar .fc-button {
+  border-radius: var(--radius-md);
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.375rem 0.75rem;
+  text-transform: capitalize;
+}
+
+.finance-calendar .fc-col-header-cell-cushion,
+.finance-calendar .fc-daygrid-day-number {
+  color: var(--muted-foreground);
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.finance-calendar .fc-daygrid-day-frame {
+  min-height: 5.5rem;
+}
+
+.finance-calendar .fc-daygrid-day:hover .fc-daygrid-day-frame {
+  background: color-mix(in oklch, var(--accent), transparent 60%);
+}

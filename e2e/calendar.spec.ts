@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { copy } from "../src/lib/copy";
 import { createExpenseEntry, loginAsDemo } from "./helpers";
 
 test.describe("Finance calendar", () => {
@@ -7,13 +8,31 @@ test.describe("Finance calendar", () => {
   });
 
   test("shows month view with navigation controls", async ({ page }) => {
-    await expect(page.getByRole("heading", { name: "Finance Calendar" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "month", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "week", exact: true })).toBeVisible();
-    await expect(page.getByRole("button", { name: "today", exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: copy.calendarTitle }),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Mês", exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Semana", exact: true }),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: "Hoje", exact: true })).toBeVisible();
   });
 
-  test("creates an expense and shows it in the day detail sheet", async ({ page }) => {
+  test("navigates to the next month without breaking the grid", async ({ page }) => {
+    await expect(page.locator(".fc-daygrid-body tr")).toHaveCount(6);
+
+    await page.getByRole("button", { name: "Próximo Mês" }).click();
+
+    await expect(
+      page.getByRole("heading", { level: 2, name: /setembro de 2026/i }),
+    ).toBeVisible();
+    await expect(page.locator(".fc-daygrid-body tr")).toHaveCount(5);
+    await expect(page.locator(".fc-daygrid-day")).toHaveCount(35);
+  });
+
+  test("creates an expense and shows it in the day detail sheet", async ({
+    page,
+  }) => {
     const testDate = "2026-08-28";
     const description = `Playwright expense ${Date.now()}`;
 
@@ -50,7 +69,7 @@ test.describe("Finance calendar", () => {
     await sheet
       .locator('[data-testid^="entry-row-"]')
       .filter({ hasText: description })
-      .getByRole("button", { name: "Delete entry" })
+      .getByRole("button", { name: copy.daySheet.deleteEntry })
       .click();
 
     await expect(sheet.getByText(description)).not.toBeVisible();

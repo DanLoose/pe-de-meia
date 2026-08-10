@@ -19,6 +19,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { copy } from "@/lib/copy";
 import { formatCurrency, formatDateLabel } from "@/lib/format";
 import type { CategoryDTO, TransactionDTO } from "@/types";
 
@@ -52,7 +53,7 @@ export function DayDetailSheet({
         setTransactions(result.data);
         setError(null);
       } else {
-        setError(result.error ?? "Failed to load transactions");
+        setError(result.error ?? copy.daySheet.loadError);
       }
     });
   }, [open, date]);
@@ -80,7 +81,7 @@ export function DayDetailSheet({
       const result = await deleteTransactionAction(id);
       if (!result.success) {
         setTransactions(previous);
-        setError(result.error ?? "Failed to delete transaction");
+        setError(result.error ?? copy.daySheet.deleteError);
         return;
       }
       setError(null);
@@ -110,33 +111,33 @@ export function DayDetailSheet({
       <Sheet open={open} onOpenChange={onOpenChange}>
         <SheetContent className="flex w-full flex-col sm:max-w-md">
           <SheetHeader>
-            <SheetTitle>{date ? formatDateLabel(date) : "Day details"}</SheetTitle>
-            <SheetDescription>
-              Review and manage entries for this day.
-            </SheetDescription>
+            <SheetTitle>
+              {date ? formatDateLabel(date) : copy.daySheet.titleFallback}
+            </SheetTitle>
+            <SheetDescription>{copy.daySheet.description}</SheetDescription>
           </SheetHeader>
 
           <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
             <div className="rounded-lg border p-3">
-              <p className="text-muted-foreground">Income</p>
+              <p className="text-muted-foreground">{copy.daySheet.income}</p>
               <p className="font-medium text-emerald-600">
                 {formatCurrency(totals.income)}
               </p>
             </div>
             <div className="rounded-lg border p-3">
-              <p className="text-muted-foreground">Expense</p>
+              <p className="text-muted-foreground">{copy.daySheet.expense}</p>
               <p className="font-medium text-red-600">
                 {formatCurrency(totals.expense)}
               </p>
             </div>
             <div className="rounded-lg border p-3">
-              <p className="text-muted-foreground">Net</p>
+              <p className="text-muted-foreground">{copy.daySheet.net}</p>
               <p className="font-medium">{formatCurrency(totals.net)}</p>
             </div>
           </div>
 
           <div className="mt-4 flex items-center justify-between">
-            <h3 className="font-medium">Entries</h3>
+            <h3 className="font-medium">{copy.daySheet.entries}</h3>
             <Button
               size="sm"
               onClick={() => {
@@ -146,7 +147,7 @@ export function DayDetailSheet({
               disabled={!date}
             >
               <Plus className="size-4" />
-              Add entry
+              {copy.daySheet.addEntry}
             </Button>
           </div>
 
@@ -154,12 +155,14 @@ export function DayDetailSheet({
 
           <div className="flex-1 space-y-3 overflow-y-auto pr-1">
             {isPending && transactions.length === 0 && (
-              <p className="text-sm text-muted-foreground">Loading entries...</p>
+              <p className="text-sm text-muted-foreground">
+                {copy.daySheet.loading}
+              </p>
             )}
             {error && <p className="text-sm text-destructive">{error}</p>}
             {!isPending && transactions.length === 0 && !error && (
               <p className="text-sm text-muted-foreground">
-                No entries yet for this day.
+                {copy.daySheet.empty}
               </p>
             )}
             {transactions.map((transaction) => (
@@ -197,7 +200,7 @@ export function DayDetailSheet({
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    aria-label="Edit entry"
+                    aria-label={copy.daySheet.editEntry}
                     onClick={() => {
                       setEditing(transaction);
                       setFormOpen(true);
@@ -208,7 +211,7 @@ export function DayDetailSheet({
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    aria-label="Delete entry"
+                    aria-label={copy.daySheet.deleteEntry}
                     onClick={() => handleDelete(transaction.id)}
                   >
                     <Trash2 className="size-4" />

@@ -23,5 +23,15 @@ export const monthQuerySchema = z.object({
   month: z.coerce.number().int().min(1).max(12),
 });
 
+export const dateRangeQuerySchema = z
+  .object({
+    start: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
+    end: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
+  })
+  .refine((value) => value.start <= value.end, {
+    message: "Start date must be before or equal to end date",
+    path: ["end"],
+  });
+
 export type CreateTransactionInput = z.infer<typeof createTransactionSchema>;
 export type UpdateTransactionInput = z.infer<typeof updateTransactionSchema>;

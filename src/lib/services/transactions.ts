@@ -2,6 +2,7 @@ import { Prisma, TransactionType } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import {
   createTransactionSchema,
+  dateRangeQuerySchema,
   deleteTransactionSchema,
   monthQuerySchema,
   updateTransactionSchema,
@@ -86,6 +87,26 @@ export async function getTransactionsByMonth(
   const parsed = monthQuerySchema.parse({ year, month });
   const { start, end } = getMonthRange(parsed.year, parsed.month);
 
+  return getTransactionsInRange(userId, start, end);
+}
+
+export async function getTransactionsByDateRange(
+  userId: string,
+  startDate: string,
+  endDate: string,
+): Promise<MonthData> {
+  const parsed = dateRangeQuerySchema.parse({ start: startDate, end: endDate });
+  const start = parseDateOnly(parsed.start);
+  const end = parseDateOnly(parsed.end);
+
+  return getTransactionsInRange(userId, start, end);
+}
+
+async function getTransactionsInRange(
+  userId: string,
+  start: Date,
+  end: Date,
+): Promise<MonthData> {
   const transactions = await prisma.transaction.findMany({
     where: {
       userId,
