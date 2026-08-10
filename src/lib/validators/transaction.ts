@@ -1,0 +1,27 @@
+import { z } from "zod";
+
+export const transactionTypeSchema = z.enum(["INCOME", "EXPENSE"]);
+
+export const createTransactionSchema = z.object({
+  type: transactionTypeSchema,
+  amount: z.coerce.number().positive("Amount must be greater than zero"),
+  description: z.string().trim().max(500).optional(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
+  categoryId: z.string().min(1, "Category is required"),
+});
+
+export const updateTransactionSchema = createTransactionSchema.extend({
+  id: z.string().min(1),
+});
+
+export const deleteTransactionSchema = z.object({
+  id: z.string().min(1),
+});
+
+export const monthQuerySchema = z.object({
+  year: z.coerce.number().int().min(2000).max(2100),
+  month: z.coerce.number().int().min(1).max(12),
+});
+
+export type CreateTransactionInput = z.infer<typeof createTransactionSchema>;
+export type UpdateTransactionInput = z.infer<typeof updateTransactionSchema>;
