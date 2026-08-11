@@ -39,6 +39,8 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-income: var(--income);
+  --color-expense: var(--expense);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -49,14 +51,20 @@
 }
 
 :root {
-  --background: oklch(1 0 0);
+  --background: oklch(0.995 0.004 175);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.52 0.11 175);
+  --primary-foreground: oklch(0.99 0 0);
+  --income: oklch(0.55 0.14 155);
+  --expense: oklch(0.55 0.18 25);
+  --page-padding-x: 1rem;
+  --page-padding-y: 1.5rem;
+  --section-gap: 1.5rem;
+  --card-padding: 1rem;
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -84,14 +92,16 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  --background: oklch(0.145 0.01 175);
   --foreground: oklch(0.985 0 0);
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: oklch(0.68 0.12 175);
+  --primary-foreground: oklch(0.15 0.02 175);
+  --income: oklch(0.72 0.14 155);
+  --expense: oklch(0.7 0.16 25);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
@@ -126,6 +136,12 @@
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer utilities {
+  .text-money {
+    font-variant-numeric: tabular-nums;
   }
 }
 
