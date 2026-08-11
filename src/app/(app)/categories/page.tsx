@@ -1,4 +1,7 @@
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { CategoryManager } from "@/components/categories/CategoryManager";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { auth } from "@/lib/auth";
 import { copy } from "@/lib/copy";
 import { getBudgetsForMonth } from "@/lib/services/budgets";
@@ -14,6 +17,9 @@ export default async function CategoriesPage() {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
+  const monthLabel = format(new Date(year, month - 1, 1), "MMMM 'de' yyyy", {
+    locale: ptBR,
+  });
 
   const [categories, budgets] = await Promise.all([
     getCategoriesByUser(session.user.id),
@@ -22,17 +28,16 @@ export default async function CategoriesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {copy.categories.title}
-        </h1>
-        <p className="text-sm text-muted-foreground">{copy.categories.subtitle}</p>
-      </div>
+      <PageHeader
+        title={copy.categories.title}
+        description={copy.categories.subtitle}
+      />
       <CategoryManager
         categories={categories}
         budgets={budgets}
         year={year}
         month={month}
+        monthLabel={monthLabel}
       />
     </div>
   );

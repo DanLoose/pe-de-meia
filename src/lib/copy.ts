@@ -19,6 +19,10 @@ export const copy = {
     signUp: "Cadastre-se",
     hasAccount: "Já tem uma conta?",
     invalidCredentials: "E-mail ou senha inválidos",
+    loginRequired: "Faça login para acessar esta página.",
+    demoTitle: "Conta demo para testes",
+    demoEmail: "E-mail:",
+    passwordHint: "Mínimo de 8 caracteres.",
   },
   entry: {
     new: "Novo lançamento",
@@ -59,6 +63,8 @@ export const copy = {
     newEntry: "Novo lançamento",
     updating: "Atualizando calendário...",
     loadError: "Não foi possível carregar o calendário",
+    clickDayHint: "Clique em um dia para ver ou adicionar lançamentos.",
+    today: "Hoje",
   },
   deleteConfirm: {
     title: "Excluir lançamento?",
@@ -93,7 +99,9 @@ export const copy = {
     type: "Tipo",
     budget: "Orçamento do mês",
     budgetPlaceholder: "Sem orçamento",
-    saveBudget: "Salvar orçamento",
+    saveBudget: "Salvar",
+    budgetMonthLabel: "Orçamentos de",
+    budgetHint: "Defina um limite mensal por categoria de despesa.",
     empty: "Nenhuma categoria cadastrada.",
     deleteTitle: "Excluir categoria?",
     deleteDescription:

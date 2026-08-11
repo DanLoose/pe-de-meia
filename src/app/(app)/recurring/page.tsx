@@ -1,4 +1,5 @@
 import { RecurringManager } from "@/components/recurring/RecurringManager";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { auth } from "@/lib/auth";
 import { copy } from "@/lib/copy";
 import { getCategoriesByUser } from "@/lib/services/categories";
@@ -18,12 +19,10 @@ export default async function RecurringPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          {copy.recurring.title}
-        </h1>
-        <p className="text-sm text-muted-foreground">{copy.recurring.subtitle}</p>
-      </div>
+      <PageHeader
+        title={copy.recurring.title}
+        description={copy.recurring.subtitle}
+      />
       <RecurringManager items={items} categories={categories} />
     </div>
   );

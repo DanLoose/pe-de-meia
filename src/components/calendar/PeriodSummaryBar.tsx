@@ -1,5 +1,6 @@
 import { copy } from "@/lib/copy";
 import { formatCurrency } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { BudgetSummary, DailySummary } from "@/types";
 
 interface PeriodSummaryBarProps {
@@ -45,7 +46,15 @@ export function PeriodSummaryBar({
         </div>
         <div>
           <p className="text-muted-foreground">{copy.period.net}</p>
-          <p className="text-lg font-semibold">{formatCurrency(net)}</p>
+          <p
+            className={cn(
+              "text-lg font-semibold",
+              net > 0 && "text-emerald-600",
+              net < 0 && "text-red-600",
+            )}
+          >
+            {formatCurrency(net)}
+          </p>
         </div>
       </div>
 

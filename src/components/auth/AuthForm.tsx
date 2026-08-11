@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import { loginAction, registerAction } from "@/app/actions/auth";
+import { AuthBanner } from "@/components/auth/AuthBanner";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,14 +21,15 @@ const initialState: ActionResult = { success: false };
 
 interface AuthFormProps {
   mode: "login" | "register";
+  callbackUrl?: string;
 }
 
-export function AuthForm({ mode }: AuthFormProps) {
+export function AuthForm({ mode, callbackUrl }: AuthFormProps) {
   const action = mode === "login" ? loginAction : registerAction;
   const [state, formAction, pending] = useActionState(action, initialState);
 
   return (
-    <Card className="w-full max-w-md">
+    <Card className="w-full max-w-md shadow-sm">
       <CardHeader>
         <CardTitle>
           {mode === "login" ? copy.auth.loginTitle : copy.auth.registerTitle}
@@ -38,12 +40,22 @@ export function AuthForm({ mode }: AuthFormProps) {
             : copy.auth.registerDescription}
         </CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="space-y-4">
+        {mode === "login" && callbackUrl && (
+          <AuthBanner variant="redirect" />
+        )}
+        {mode === "login" && !callbackUrl && <AuthBanner variant="demo" />}
         <form action={formAction} className="space-y-4">
           {mode === "register" && (
             <div className="space-y-2">
               <Label htmlFor="name">{copy.auth.name}</Label>
-              <Input id="name" name="name" required autoComplete="name" />
+              <Input
+                id="name"
+                name="name"
+                required
+                autoComplete="name"
+                autoFocus
+              />
             </div>
           )}
           <div className="space-y-2">
@@ -54,6 +66,7 @@ export function AuthForm({ mode }: AuthFormProps) {
               type="email"
               required
               autoComplete="email"
+              autoFocus={mode === "login"}
             />
           </div>
           <div className="space-y-2">
@@ -68,10 +81,13 @@ export function AuthForm({ mode }: AuthFormProps) {
                 mode === "login" ? "current-password" : "new-password"
               }
             />
+            {mode === "register" && (
+              <p className="text-xs text-muted-foreground">
+                {copy.auth.passwordHint}
+              </p>
+            )}
           </div>
-          {state.error && (
-            <p className="text-sm text-destructive">{state.error}</p>
-          )}
+          {state.error && <AuthBanner variant="error" message={state.error} />}
           <Button
             type="submit"
             className="w-full"
@@ -85,13 +101,13 @@ export function AuthForm({ mode }: AuthFormProps) {
                 : copy.auth.createAccount}
           </Button>
         </form>
-        <p className="mt-4 text-center text-sm text-muted-foreground">
+        <p className="text-center text-sm text-muted-foreground">
           {mode === "login" ? (
             <>
               {copy.auth.noAccount}{" "}
               <Link
                 href="/register"
-                className="text-primary underline-offset-4 hover:underline"
+                className="font-medium text-primary underline-offset-4 hover:underline"
               >
                 {copy.auth.signUp}
               </Link>
@@ -101,7 +117,7 @@ export function AuthForm({ mode }: AuthFormProps) {
               {copy.auth.hasAccount}{" "}
               <Link
                 href="/login"
-                className="text-primary underline-offset-4 hover:underline"
+                className="font-medium text-primary underline-offset-4 hover:underline"
               >
                 {copy.auth.signIn}
               </Link>
