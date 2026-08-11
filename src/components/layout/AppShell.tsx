@@ -13,7 +13,7 @@ export function AppShell({ userEmail, children }: AppShellProps) {
   return (
     <div className="min-h-full bg-muted/20">
       <header className="sticky top-0 z-40 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-4 px-[var(--page-padding-x)] sm:px-6 lg:px-8">
           <div className="flex items-center gap-4">
             <BrandLogo />
             <AppNav />
@@ -35,7 +35,9 @@ export function AppShell({ userEmail, children }: AppShellProps) {
           </div>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6">{children}</main>
+      <main className="mx-auto w-full max-w-7xl px-[var(--page-padding-x)] py-[var(--page-padding-y)] sm:px-6 lg:px-8">
+        {children}
+      </main>
     </div>
   );
 }
