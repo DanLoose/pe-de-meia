@@ -23,7 +23,11 @@ import type {
   TransactionDTO,
 } from "@/types";
 
-function revalidateCalendar() {
+function revalidateFinancePaths() {
+  revalidatePath("/saldos");
+  revalidatePath("/totais");
+  revalidatePath("/horizonte");
+  revalidatePath("/calendario");
   revalidatePath("/calendar");
 }
 
@@ -62,10 +66,14 @@ export async function fetchVisibleRangeDataAction(
 
 export async function fetchDayTransactionsAction(
   date: string,
+  typeFilter?: "INCOME" | "EXPENSE" | "ALL",
 ): Promise<ActionResult<TransactionDTO[]>> {
   try {
     const userId = await getSessionUserId();
-    const data = await getTransactionsByDate(userId, date);
+    let data = await getTransactionsByDate(userId, date);
+    if (typeFilter && typeFilter !== "ALL") {
+      data = data.filter((tx) => tx.type === typeFilter);
+    }
     return { success: true, data };
   } catch (error) {
     return {
@@ -95,7 +103,7 @@ export async function createTransactionAction(
     const userId = await getSessionUserId();
     const parsed = createTransactionSchema.parse(input);
     const data = await createTransaction(userId, parsed);
-    revalidateCalendar();
+    revalidateFinancePaths();
     return { success: true, data };
   } catch (error) {
     return {
@@ -112,7 +120,7 @@ export async function updateTransactionAction(
     const userId = await getSessionUserId();
     const parsed = updateTransactionSchema.parse(input);
     const data = await updateTransaction(userId, parsed);
-    revalidateCalendar();
+    revalidateFinancePaths();
     return { success: true, data };
   } catch (error) {
     return {
@@ -129,7 +137,7 @@ export async function deleteTransactionAction(
     const userId = await getSessionUserId();
     const parsed = deleteTransactionSchema.parse({ id });
     await deleteTransaction(userId, parsed.id);
-    revalidateCalendar();
+    revalidateFinancePaths();
     return { success: true };
   } catch (error) {
     return {

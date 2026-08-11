@@ -2,14 +2,26 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, FolderOpen, Repeat } from "lucide-react";
+import {
+  BarChart3,
+  CalendarDays,
+  FolderOpen,
+  Menu,
+  Repeat,
+  Table2,
+  TrendingUp,
+} from "lucide-react";
 import { copy } from "@/lib/copy";
 import { cn } from "@/lib/utils";
 
 const links = [
-  { href: "/calendar", label: copy.nav.calendar, icon: CalendarDays },
-  { href: "/categories", label: copy.nav.categories, icon: FolderOpen },
-  { href: "/recurring", label: copy.nav.recurring, icon: Repeat },
+  { href: "/saldos", label: copy.nav.saldos, icon: Table2 },
+  { href: "/totais", label: copy.nav.totais, icon: BarChart3 },
+  { href: "/horizonte", label: copy.nav.horizonte, icon: TrendingUp },
+  { href: "/calendario", label: copy.nav.calendar, icon: CalendarDays },
+  { href: "/tags", label: copy.nav.categories, icon: FolderOpen },
+  { href: "/recorrentes", label: copy.nav.recurring, icon: Repeat },
+  { href: "/menu", label: copy.nav.menu, icon: Menu },
 ];
 
 export function AppNav() {

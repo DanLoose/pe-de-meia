@@ -1,6 +1,6 @@
-import { TransactionType } from "@/generated/prisma/client";
+import { TransactionType, type LedgerColumn } from "@/generated/prisma/client";
 
-export type { TransactionType };
+export type { TransactionType, LedgerColumn };
 
 export interface DailySummary {
   date: string;
@@ -25,6 +25,7 @@ export interface CategoryDTO {
   name: string;
   color: string;
   type: TransactionType;
+  ledgerColumn: LedgerColumn;
 }
 
 export interface MonthData {
@@ -65,4 +66,87 @@ export interface ActionResult<T = void> {
   success: boolean;
   data?: T;
   error?: string;
+}
+
+export interface LedgerDayRow {
+  date: string;
+  day: number;
+  income: number;
+  expense: number;
+  daily: number;
+  savings: number;
+  card: number;
+  balance: number;
+}
+
+export interface LedgerMonthData {
+  year: number;
+  month: number;
+  openingBalance: number;
+  rows: LedgerDayRow[];
+  totals: {
+    income: number;
+    expense: number;
+    daily: number;
+    savings: number;
+    card: number;
+    balance: number;
+  };
+}
+
+export interface MonthTotalsData {
+  year: number;
+  month: number;
+  performance: number;
+  performanceStatus: string;
+  saved: number;
+  savedPercent: number;
+  savedStatus: string;
+  costOfLiving: number;
+  costOfLivingStatus: string;
+  dailyAverage: number;
+  dailyCeiling: number | null;
+  dailyStatus: string;
+  totalIncome: number;
+  totalExpense: number;
+}
+
+export interface HorizonDayCell {
+  date: string;
+  balance: number;
+}
+
+export interface HorizonMonthColumn {
+  year: number;
+  month: number;
+  label: string;
+  days: HorizonDayCell[];
+}
+
+export interface HorizonData {
+  months: HorizonMonthColumn[];
+  lowThreshold: number;
+}
+
+export interface FixedExpenseDTO {
+  id: string;
+  name: string;
+  amount: number;
+  sortOrder: number;
+}
+
+export interface UserSettingsDTO {
+  openingBalance: number;
+  dailyDivisor: number;
+  subscriptionStatus: string;
+  subscriptionEndsAt: string | null;
+  name: string | null;
+  email: string;
+}
+
+export interface DailyForecastData {
+  expenses: FixedExpenseDTO[];
+  dailyDivisor: number;
+  totalFixed: number;
+  dailyCeiling: number;
 }
