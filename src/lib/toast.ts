@@ -12,6 +12,7 @@ export const appToast = {
   recurringCreated: () => toast.success(copy.toast.recurringCreated),
   recurringUpdated: () => toast.success(copy.toast.recurringUpdated),
   recurringDeleted: () => toast.success(copy.toast.recurringDeleted),
+  success: (message: string) => toast.success(message),
   error: (message?: string) =>
     toast.error(message ?? copy.toast.genericError),
 };
