@@ -7,7 +7,7 @@ import interactionPlugin from "@fullcalendar/interaction";
 import FullCalendar from "@fullcalendar/react";
 import { format, subDays } from "date-fns";
 import { Loader2, Plus } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore, useTransition } from "react";
 import {
   createTransactionAction,
   fetchVisibleRangeDataAction,
@@ -19,7 +19,9 @@ import { EntryForm } from "@/components/entries/EntryForm";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { copy } from "@/lib/copy";
-import { formatCurrency } from "@/lib/format";
+import { balanceClass } from "@/lib/design";
+import { formatCurrency, formatShortDateLabel } from "@/lib/format";
+import { dismissCalendarHint, isCalendarHintDismissed, subscribeCalendarHint } from "@/lib/onboarding";
 import { cn } from "@/lib/utils";
 import type { BudgetSummary, CategoryDTO, DailySummary } from "@/types";
 
@@ -66,6 +68,11 @@ export function FinanceCalendar({
   const [entryDate, setEntryDate] = useState<string>(today);
   const [visibleRange, setVisibleRange] = useState<VisibleRange | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const showHint = useSyncExternalStore(
+    subscribeCalendarHint,
+    () => !isCalendarHintDismissed(),
+    () => false,
+  );
   const [isLoading, setIsLoading] = useState(false);
   const [isPending, startTransition] = useTransition();
   const skipInitialFetch = useRef(true);
@@ -156,22 +163,34 @@ export function FinanceCalendar({
     setEntryOpen(false);
   };
 
-  const openNewEntry = (date = today) => {
-    setEntryDate(date);
+  const entryTargetDate = selectedDate ?? today;
+  const entryDateLabel =
+    entryTargetDate === today
+      ? copy.calendar.today
+      : formatShortDateLabel(entryTargetDate);
+
+  const openNewEntry = (date?: string) => {
+    setEntryDate(date ?? entryTargetDate);
     setEntryOpen(true);
   };
 
   const showLoading = isLoading || isPending;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <PageHeader
         title={copy.calendarTitle}
         description={copy.calendarSubtitle}
         action={
-          <Button data-testid="new-entry-button" onClick={() => openNewEntry()}>
+          <Button
+            data-testid="new-entry-button"
+            onClick={() => openNewEntry()}
+          >
             <Plus className="size-4" />
             {copy.calendar.newEntry}
+            <span className="text-primary-foreground/80">
+              · {entryDateLabel}
+            </span>
           </Button>
         }
       />
@@ -180,7 +199,19 @@ export function FinanceCalendar({
 
       <PeriodSummaryBar summaries={summaries} budgetSummary={budgetSummary} />
 
-      <p className="text-xs text-muted-foreground">{copy.calendar.clickDayHint}</p>
+      {showHint && (
+        <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/40 px-3 py-2 text-sm">
+          <p className="text-muted-foreground">{copy.calendar.clickDayHint}</p>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => dismissCalendarHint()}
+          >
+            {copy.calendar.clickDayHintDismiss}
+          </Button>
+        </div>
+      )}
 
       <div className="relative">
         {showLoading && (
@@ -193,7 +224,7 @@ export function FinanceCalendar({
         )}
         <div
           className={cn(
-            "finance-calendar rounded-xl border bg-card p-3 shadow-sm transition-opacity",
+            "finance-calendar rounded-xl border bg-card p-4 shadow-sm transition-opacity",
             showLoading && "pointer-events-none opacity-60",
           )}
         >
@@ -225,29 +256,33 @@ export function FinanceCalendar({
           dayCellContent={(arg: DayCellContentArg) => {
             const key = toDateKey(arg.date);
             const summary = summaryMap.get(key);
+            const hasActivity =
+              summary &&
+              (summary.incomeTotal > 0 || summary.expenseTotal > 0);
 
             return (
-              <div className="flex h-full flex-col gap-1 p-1">
-                <div className="text-right text-xs font-medium">
+              <div className="flex h-full flex-col gap-1 p-1.5">
+                <div className="text-right text-xs font-medium text-muted-foreground">
                   {arg.dayNumberText}
                 </div>
-                {summary && (
-                  <div className="space-y-0.5 text-[10px] leading-tight sm:text-xs">
-                    {summary.incomeTotal > 0 && (
-                      <div className="font-medium text-emerald-600">
-                        +{formatCurrency(summary.incomeTotal)}
-                      </div>
-                    )}
-                    {summary.expenseTotal > 0 && (
-                      <div className="font-medium text-red-600">
-                        -{formatCurrency(summary.expenseTotal)}
-                      </div>
-                    )}
-                    {(summary.incomeTotal > 0 || summary.expenseTotal > 0) && (
-                      <div className="text-muted-foreground">
-                        = {formatCurrency(summary.net)}
-                      </div>
-                    )}
+                {hasActivity && summary && (
+                  <div className="mt-auto flex items-stretch gap-1.5">
+                    <div className="flex w-1 shrink-0 flex-col overflow-hidden rounded-full">
+                      {summary.incomeTotal > 0 && (
+                        <div className="flex-1 bg-income" />
+                      )}
+                      {summary.expenseTotal > 0 && (
+                        <div className="flex-1 bg-expense" />
+                      )}
+                    </div>
+                    <p
+                      className={cn(
+                        "text-xs font-semibold leading-tight text-money sm:text-sm",
+                        balanceClass(summary.net),
+                      )}
+                    >
+                      {formatCurrency(summary.net)}
+                    </p>
                   </div>
                 )}
               </div>

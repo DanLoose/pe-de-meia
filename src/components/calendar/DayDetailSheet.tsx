@@ -29,8 +29,10 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { copy } from "@/lib/copy";
+import { balanceClass, expenseClass, incomeClass } from "@/lib/design";
 import { formatCurrency, formatDateLabel } from "@/lib/format";
 import { appToast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 import type { CategoryDTO, TransactionDTO } from "@/types";
 
 interface DayDetailSheetProps {
@@ -164,27 +166,19 @@ export function DayDetailSheet({
           <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
             <div className="rounded-lg border p-3">
               <p className="text-muted-foreground">{copy.daySheet.income}</p>
-              <p className="font-medium text-emerald-600">
+              <p className={cn("font-medium", incomeClass())}>
                 {formatCurrency(totals.income)}
               </p>
             </div>
             <div className="rounded-lg border p-3">
               <p className="text-muted-foreground">{copy.daySheet.expense}</p>
-              <p className="font-medium text-red-600">
+              <p className={cn("font-medium", expenseClass())}>
                 {formatCurrency(totals.expense)}
               </p>
             </div>
             <div className="rounded-lg border p-3">
               <p className="text-muted-foreground">{copy.daySheet.net}</p>
-              <p
-                className={`font-medium ${
-                  totals.net > 0
-                    ? "text-emerald-600"
-                    : totals.net < 0
-                      ? "text-red-600"
-                      : ""
-                }`}
-              >
+              <p className={cn("font-medium", balanceClass(totals.net))}>
                 {formatCurrency(totals.net)}
               </p>
             </div>
@@ -239,7 +233,20 @@ export function DayDetailSheet({
               <div
                 key={transaction.id}
                 data-testid={`entry-row-${transaction.id}`}
-                className="flex items-start justify-between rounded-lg border p-3"
+                role="button"
+                tabIndex={0}
+                className="flex min-h-11 cursor-pointer items-start justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50"
+                onClick={() => {
+                  setEditing(transaction);
+                  setFormOpen(true);
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    setEditing(transaction);
+                    setFormOpen(true);
+                  }
+                }}
               >
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
@@ -252,8 +259,8 @@ export function DayDetailSheet({
                     <span
                       className={
                         transaction.type === "INCOME"
-                          ? "text-emerald-600"
-                          : "text-red-600"
+                          ? incomeClass()
+                          : expenseClass()
                       }
                     >
                       {transaction.type === "INCOME" ? "+" : "-"}
@@ -266,10 +273,11 @@ export function DayDetailSheet({
                     </p>
                   )}
                 </div>
-                <div className="flex gap-1">
+                <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
                   <Button
                     variant="ghost"
-                    size="icon-sm"
+                    size="icon"
+                    className="size-9"
                     aria-label={copy.daySheet.editEntry}
                     onClick={() => {
                       setEditing(transaction);
@@ -280,7 +288,8 @@ export function DayDetailSheet({
                   </Button>
                   <Button
                     variant="ghost"
-                    size="icon-sm"
+                    size="icon"
+                    className="size-9"
                     aria-label={copy.daySheet.deleteEntry}
                     onClick={() => setPendingDeleteId(transaction.id)}
                   >

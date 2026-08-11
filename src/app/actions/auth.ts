@@ -104,6 +104,28 @@ export async function loginAction(
   return { success: true };
 }
 
+export async function demoLoginAction(): Promise<ActionResult> {
+  try {
+    await signIn("credentials", {
+      email: "demo@pedemeia.dev",
+      password: "password123",
+      redirectTo: "/calendar",
+    });
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return { success: false, error: copy.auth.invalidCredentials };
+    }
+    throw error;
+  }
+
+  return { success: true };
+}
+
+export async function demoLoginFormAction(_formData: FormData): Promise<void> {
+  void _formData;
+  await demoLoginAction();
+}
+
 export async function logoutAction() {
   await signOut({ redirectTo: "/login" });
 }

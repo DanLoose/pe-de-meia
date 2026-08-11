@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/select";
 import { CATEGORY_COLOR_OPTIONS } from "@/lib/category-colors";
 import { copy } from "@/lib/copy";
+import { formatCurrency } from "@/lib/format";
 import { appToast } from "@/lib/toast";
 import type { CategoryBudgetDTO, CategoryDTO, TransactionType } from "@/types";
 
@@ -65,6 +66,7 @@ export function CategoryManager({
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState<CategoryFormState>(emptyForm);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [budgetCategory, setBudgetCategory] = useState<CategoryDTO | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const budgetMap = useMemo(
@@ -200,40 +202,32 @@ export function CategoryManager({
       {items.length === 0 ? (
         <p className="text-sm text-muted-foreground">{copy.categories.empty}</p>
       ) : (
-        <div className="space-y-2">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {items.map((category) => (
             <div
               key={category.id}
-              className="flex flex-col gap-3 rounded-xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
+              className="flex flex-col gap-3 rounded-xl border bg-card p-4"
             >
-              <div className="flex items-center gap-3">
-                <span
-                  className="size-3 rounded-full"
-                  style={{ backgroundColor: category.color }}
-                />
-                <div>
-                  <p className="font-medium">{category.name}</p>
-                  <Badge variant="outline" className="mt-1">
-                    {category.type === "INCOME"
-                      ? copy.entry.income
-                      : copy.entry.expense}
-                  </Badge>
-                </div>
-              </div>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                {category.type === "EXPENSE" && (
-                  <BudgetField
-                    key={`${category.id}-${budgetMap.get(category.id) ?? "none"}`}
-                    categoryId={category.id}
-                    savedAmount={budgetMap.get(category.id)}
-                    onSave={saveBudget}
-                    disabled={savingBudgetId === category.id}
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-center gap-3">
+                  <span
+                    className="size-3 shrink-0 rounded-full"
+                    style={{ backgroundColor: category.color }}
                   />
-                )}
+                  <div>
+                    <p className="font-medium">{category.name}</p>
+                    <Badge variant="outline" className="mt-1">
+                      {category.type === "INCOME"
+                        ? copy.entry.income
+                        : copy.entry.expense}
+                    </Badge>
+                  </div>
+                </div>
                 <div className="flex gap-1">
                   <Button
                     variant="ghost"
-                    size="icon-sm"
+                    size="icon"
+                    className="size-9"
                     aria-label={copy.categories.edit}
                     onClick={() => openEdit(category)}
                   >
@@ -241,7 +235,8 @@ export function CategoryManager({
                   </Button>
                   <Button
                     variant="ghost"
-                    size="icon-sm"
+                    size="icon"
+                    className="size-9"
                     aria-label={copy.categories.delete}
                     onClick={() => setPendingDeleteId(category.id)}
                   >
@@ -249,6 +244,23 @@ export function CategoryManager({
                   </Button>
                 </div>
               </div>
+              {category.type === "EXPENSE" && (
+                <div className="flex items-center justify-between gap-2 border-t pt-3">
+                  <p className="text-sm text-muted-foreground">
+                    {budgetMap.has(category.id)
+                      ? formatCurrency(budgetMap.get(category.id)!)
+                      : copy.categories.budgetPlaceholder}
+                  </p>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setBudgetCategory(category)}
+                  >
+                    {copy.categories.setBudget}
+                  </Button>
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -354,6 +366,32 @@ export function CategoryManager({
               {form.id ? copy.categories.update : copy.categories.create}
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={budgetCategory !== null}
+        onOpenChange={(open) => !open && setBudgetCategory(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {copy.categories.setBudget}
+              {budgetCategory ? ` — ${budgetCategory.name}` : ""}
+            </DialogTitle>
+          </DialogHeader>
+          {budgetCategory && (
+            <BudgetField
+              key={`${budgetCategory.id}-${budgetMap.get(budgetCategory.id) ?? "none"}`}
+              categoryId={budgetCategory.id}
+              savedAmount={budgetMap.get(budgetCategory.id)}
+              onSave={(categoryId, amount) => {
+                saveBudget(categoryId, amount);
+                setBudgetCategory(null);
+              }}
+              disabled={savingBudgetId === budgetCategory.id}
+            />
+          )}
         </DialogContent>
       </Dialog>
 
