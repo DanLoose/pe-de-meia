@@ -60,7 +60,7 @@ export async function registerAction(
     await signIn("credentials", {
       email,
       password: parsed.data.password,
-      redirectTo: "/calendar",
+      redirectTo: "/saldos",
     });
   } catch (error) {
     if (error instanceof AuthError) {
@@ -92,7 +92,7 @@ export async function loginAction(
     await signIn("credentials", {
       email: parsed.data.email.toLowerCase(),
       password: parsed.data.password,
-      redirectTo: "/calendar",
+      redirectTo: "/saldos",
     });
   } catch (error) {
     if (error instanceof AuthError) {
@@ -109,7 +109,7 @@ export async function demoLoginAction(): Promise<ActionResult> {
     await signIn("credentials", {
       email: "demo@pedemeia.dev",
       password: "password123",
-      redirectTo: "/calendar",
+      redirectTo: "/saldos",
     });
   } catch (error) {
     if (error instanceof AuthError) {
