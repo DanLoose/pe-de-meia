@@ -5,6 +5,7 @@ import { createExpenseEntry, loginAsDemo } from "./helpers";
 test.describe("Finance calendar", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsDemo(page);
+    await page.goto("/calendario");
   });
 
   test("shows month view with navigation controls", async ({ page }) => {

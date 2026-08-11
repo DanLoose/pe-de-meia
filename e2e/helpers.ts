@@ -9,7 +9,7 @@ export async function loginAsDemo(page: Page) {
   await page.getByLabel(copy.auth.email).fill(DEMO_EMAIL);
   await page.getByLabel(copy.auth.password).fill(DEMO_PASSWORD);
   await page.getByTestId("login-submit").click();
-  await page.waitForURL("/calendar");
+  await page.waitForURL("/saldos");
 }
 
 export async function createExpenseEntry(
