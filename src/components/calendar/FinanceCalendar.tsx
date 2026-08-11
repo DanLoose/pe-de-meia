@@ -6,7 +6,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import FullCalendar from "@fullcalendar/react";
 import { format, subDays } from "date-fns";
-import { Loader2, Plus, CalendarDays } from "lucide-react";
+import { Loader2, Plus } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import {
   createTransactionAction,
@@ -17,7 +17,7 @@ import { DayDetailSheet } from "@/components/calendar/DayDetailSheet";
 import { PeriodSummaryBar } from "@/components/calendar/PeriodSummaryBar";
 import { EntryForm } from "@/components/entries/EntryForm";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { copy } from "@/lib/copy";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -27,6 +27,7 @@ interface FinanceCalendarProps {
   categories: CategoryDTO[];
   initialSummaries: DailySummary[];
   initialBudgetSummary?: BudgetSummary | null;
+  today: string;
 }
 
 type VisibleRange = {
@@ -53,6 +54,7 @@ export function FinanceCalendar({
   categories,
   initialSummaries,
   initialBudgetSummary = null,
+  today,
 }: FinanceCalendarProps) {
   const [summaries, setSummaries] = useState<DailySummary[]>(initialSummaries);
   const [budgetSummary, setBudgetSummary] = useState<BudgetSummary | null>(
@@ -61,9 +63,7 @@ export function FinanceCalendar({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [entryOpen, setEntryOpen] = useState(false);
-  const [entryDate, setEntryDate] = useState<string>(
-    format(new Date(), "yyyy-MM-dd"),
-  );
+  const [entryDate, setEntryDate] = useState<string>(today);
   const [visibleRange, setVisibleRange] = useState<VisibleRange | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -156,54 +156,31 @@ export function FinanceCalendar({
     setEntryOpen(false);
   };
 
+  const openNewEntry = (date = today) => {
+    setEntryDate(date);
+    setEntryOpen(true);
+  };
+
   const showLoading = isLoading || isPending;
-  const hasActivity = summaries.some(
-    (summary) => summary.incomeTotal > 0 || summary.expenseTotal > 0,
-  );
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
-            {copy.calendarTitle}
-          </h1>
-          <p className="text-sm text-muted-foreground">{copy.calendarSubtitle}</p>
-        </div>
-        <Button
-          data-testid="new-entry-button"
-          onClick={() => {
-            setEntryDate(format(new Date(), "yyyy-MM-dd"));
-            setEntryOpen(true);
-          }}
-        >
-          <Plus className="size-4" />
-          {copy.calendar.newEntry}
-        </Button>
-      </div>
+      <PageHeader
+        title={copy.calendarTitle}
+        description={copy.calendarSubtitle}
+        action={
+          <Button data-testid="new-entry-button" onClick={() => openNewEntry()}>
+            <Plus className="size-4" />
+            {copy.calendar.newEntry}
+          </Button>
+        }
+      />
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <PeriodSummaryBar summaries={summaries} budgetSummary={budgetSummary} />
 
-      {!showLoading && !hasActivity && (
-        <EmptyState
-          icon={CalendarDays}
-          title={copy.empty.calendarTitle}
-          description={copy.empty.calendarDescription}
-          action={
-            <Button
-              onClick={() => {
-                setEntryDate(format(new Date(), "yyyy-MM-dd"));
-                setEntryOpen(true);
-              }}
-            >
-              <Plus className="size-4" />
-              {copy.empty.calendarAction}
-            </Button>
-          }
-        />
-      )}
+      <p className="text-xs text-muted-foreground">{copy.calendar.clickDayHint}</p>
 
       <div className="relative">
         {showLoading && (
@@ -231,6 +208,18 @@ export function FinanceCalendar({
           }}
           height="auto"
           fixedWeekCount={false}
+          dayCellClassNames={(arg) => {
+            const key = toDateKey(arg.date);
+            const summary = summaryMap.get(key);
+            const classes = ["cursor-pointer"];
+            if (key === today) {
+              classes.push("fc-day-today-ring");
+            }
+            if (summary && (summary.incomeTotal > 0 || summary.expenseTotal > 0)) {
+              classes.push("fc-day-has-activity");
+            }
+            return classes;
+          }}
           dateClick={(info) => openDay(info.dateStr)}
           datesSet={handleDatesSet}
           dayCellContent={(arg: DayCellContentArg) => {

@@ -23,7 +23,12 @@ export function AppShell({ userEmail, children }: AppShellProps) {
               {userEmail}
             </p>
             <form action={logoutAction}>
-              <Button type="submit" variant="outline" size="sm">
+              <Button
+                type="submit"
+                variant="outline"
+                size="sm"
+                data-testid="logout-button"
+              >
                 {copy.auth.signOut}
               </Button>
             </form>

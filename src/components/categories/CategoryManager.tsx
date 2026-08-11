@@ -8,6 +8,7 @@ import {
   updateCategoryAction,
 } from "@/app/actions/categories";
 import { upsertBudgetAction } from "@/app/actions/budgets";
+import { BudgetField } from "@/components/categories/BudgetField";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,6 +37,7 @@ interface CategoryManagerProps {
   budgets: CategoryBudgetDTO[];
   year: number;
   month: number;
+  monthLabel: string;
 }
 
 type CategoryFormState = {
@@ -56,6 +58,7 @@ export function CategoryManager({
   budgets: initialBudgets,
   year,
   month,
+  monthLabel,
 }: CategoryManagerProps) {
   const [categories, setCategories] = useState(initialCategories);
   const [budgets, setBudgets] = useState(initialBudgets);
@@ -149,12 +152,15 @@ export function CategoryManager({
     });
   };
 
+  const [savingBudgetId, setSavingBudgetId] = useState<string | null>(null);
+
   const saveBudget = (categoryId: string, amount: string) => {
     const parsed = Number(amount);
     if (!amount || Number.isNaN(parsed) || parsed <= 0) {
       return;
     }
 
+    setSavingBudgetId(categoryId);
     startTransition(async () => {
       const result = await upsertBudgetAction({
         categoryId,
@@ -162,6 +168,8 @@ export function CategoryManager({
         month,
         amount: parsed,
       });
+
+      setSavingBudgetId(null);
 
       if (!result.success || !result.data) {
         appToast.error(result.error);
@@ -214,31 +222,19 @@ export function CategoryManager({
               </div>
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                 {category.type === "EXPENSE" && (
-                  <div className="flex items-center gap-2">
-                    <Label
-                      htmlFor={`budget-${category.id}`}
-                      className="sr-only"
-                    >
-                      {copy.categories.budget}
-                    </Label>
-                    <Input
-                      id={`budget-${category.id}`}
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      className="w-36"
-                      placeholder={copy.categories.budgetPlaceholder}
-                      defaultValue={budgetMap.get(category.id) ?? ""}
-                      onBlur={(event) =>
-                        saveBudget(category.id, event.target.value)
-                      }
-                    />
-                  </div>
+                  <BudgetField
+                    key={`${category.id}-${budgetMap.get(category.id) ?? "none"}`}
+                    categoryId={category.id}
+                    savedAmount={budgetMap.get(category.id)}
+                    onSave={saveBudget}
+                    disabled={savingBudgetId === category.id}
+                  />
                 )}
                 <div className="flex gap-1">
                   <Button
                     variant="ghost"
                     size="icon-sm"
+                    aria-label={copy.categories.edit}
                     onClick={() => openEdit(category)}
                   >
                     <Pencil className="size-4" />
@@ -246,6 +242,7 @@ export function CategoryManager({
                   <Button
                     variant="ghost"
                     size="icon-sm"
+                    aria-label={copy.categories.delete}
                     onClick={() => setPendingDeleteId(category.id)}
                   >
                     <Trash2 className="size-4" />
@@ -279,6 +276,11 @@ export function CategoryManager({
   return (
     <>
       <div className="space-y-8">
+        {grouped.expense.length > 0 && (
+          <p className="text-sm text-muted-foreground">
+            {copy.categories.budgetMonthLabel} {monthLabel}. {copy.categories.budgetHint}
+          </p>
+        )}
         {renderSection(copy.categories.income, grouped.income, "INCOME")}
         {renderSection(copy.categories.expense, grouped.expense, "EXPENSE")}
       </div>

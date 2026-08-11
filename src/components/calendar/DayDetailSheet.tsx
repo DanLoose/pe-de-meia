@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { Pencil, Plus, Trash2, Wallet } from "lucide-react";
+import { Loader2, Pencil, Plus, Trash2, Wallet } from "lucide-react";
 import {
   createTransactionAction,
   deleteTransactionAction,
@@ -176,7 +176,17 @@ export function DayDetailSheet({
             </div>
             <div className="rounded-lg border p-3">
               <p className="text-muted-foreground">{copy.daySheet.net}</p>
-              <p className="font-medium">{formatCurrency(totals.net)}</p>
+              <p
+                className={`font-medium ${
+                  totals.net > 0
+                    ? "text-emerald-600"
+                    : totals.net < 0
+                      ? "text-red-600"
+                      : ""
+                }`}
+              >
+                {formatCurrency(totals.net)}
+              </p>
             </div>
           </div>
 
@@ -199,9 +209,10 @@ export function DayDetailSheet({
 
           <div className="flex-1 space-y-3 overflow-y-auto pr-1">
             {isLoading && transactions.length === 0 && (
-              <p className="text-sm text-muted-foreground">
+              <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
+                <Loader2 className="size-4 animate-spin" />
                 {copy.daySheet.loading}
-              </p>
+              </div>
             )}
             {error && <p className="text-sm text-destructive">{error}</p>}
             {!isLoading && transactions.length === 0 && !error && (
