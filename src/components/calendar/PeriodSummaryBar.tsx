@@ -1,4 +1,5 @@
 import { copy } from "@/lib/copy";
+import { balanceClass, expenseClass, incomeClass, moneyClass } from "@/lib/design";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { BudgetSummary, DailySummary } from "@/types";
@@ -30,52 +31,48 @@ export function PeriodSummaryBar({
     <div className="space-y-3">
       <div
         data-testid="period-summary-bar"
-        className="grid grid-cols-3 gap-2 rounded-xl border bg-card p-3 text-sm shadow-sm sm:gap-4 sm:p-4"
+        className="rounded-xl border bg-card p-4 shadow-sm"
       >
-        <div>
-          <p className="text-muted-foreground">{copy.period.income}</p>
-          <p className="text-lg font-semibold text-emerald-600">
-            {formatCurrency(totals.income)}
-          </p>
-        </div>
-        <div>
-          <p className="text-muted-foreground">{copy.period.expense}</p>
-          <p className="text-lg font-semibold text-red-600">
-            {formatCurrency(totals.expense)}
-          </p>
-        </div>
-        <div>
-          <p className="text-muted-foreground">{copy.period.net}</p>
-          <p
-            className={cn(
-              "text-lg font-semibold",
-              net > 0 && "text-emerald-600",
-              net < 0 && "text-red-600",
-            )}
-          >
-            {formatCurrency(net)}
-          </p>
+        <div className="grid grid-cols-3 gap-4 border-b pb-4 text-sm">
+          <div>
+            <p className="text-muted-foreground">{copy.period.income}</p>
+            <p className={cn("text-base font-semibold", incomeClass())}>
+              {formatCurrency(totals.income)}
+            </p>
+          </div>
+          <div>
+            <p className="text-muted-foreground">{copy.period.expense}</p>
+            <p className={cn("text-base font-semibold", expenseClass())}>
+              {formatCurrency(totals.expense)}
+            </p>
+          </div>
+          <div className="text-right sm:text-left">
+            <p className="text-muted-foreground">{copy.period.net}</p>
+            <p className={cn("text-2xl font-bold", balanceClass(net))}>
+              {formatCurrency(net)}
+            </p>
+          </div>
         </div>
       </div>
 
       {budgetSummary && budgetSummary.budgetTotal > 0 && (
         <div
           data-testid="budget-summary-bar"
-          className="rounded-xl border bg-card p-3 text-sm shadow-sm sm:p-4"
+          className="rounded-xl border bg-card p-4 text-sm shadow-sm"
         >
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-muted-foreground">{copy.period.budget}</p>
-              <p className="font-semibold">
+              <p className={cn("font-semibold", moneyClass)}>
                 {formatCurrency(budgetSummary.expenseTotal)} /{" "}
                 {formatCurrency(budgetSummary.budgetTotal)}
               </p>
             </div>
             {budgetPercent !== null && (
               <p
-                className={
-                  budgetPercent > 100 ? "font-medium text-red-600" : "text-muted-foreground"
-                }
+                className={cn(
+                  budgetPercent > 100 ? cn("font-medium", expenseClass()) : "text-muted-foreground",
+                )}
               >
                 {budgetPercent}% {copy.period.budgetUsed}
               </p>
@@ -83,11 +80,10 @@ export function PeriodSummaryBar({
           </div>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
             <div
-              className={`h-full rounded-full transition-all ${
-                budgetPercent !== null && budgetPercent > 100
-                  ? "bg-red-500"
-                  : "bg-primary"
-              }`}
+              className={cn(
+                "h-full rounded-full transition-all",
+                budgetPercent !== null && budgetPercent > 100 ? "bg-expense" : "bg-primary",
+              )}
               style={{
                 width: `${Math.min(budgetPercent ?? 0, 100)}%`,
               }}

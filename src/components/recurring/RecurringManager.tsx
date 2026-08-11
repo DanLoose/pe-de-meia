@@ -27,6 +27,7 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import { copy } from "@/lib/copy";
+import { expenseClass, incomeClass } from "@/lib/design";
 import { formatCurrency } from "@/lib/format";
 import { appToast } from "@/lib/toast";
 import type { CategoryDTO, RecurringTransactionDTO, TransactionType } from "@/types";
@@ -202,44 +203,69 @@ export function RecurringManager({
         </Button>
       </div>
 
-      <div className="space-y-3">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         {items.map((item) => (
           <div
             key={item.id}
-            className="flex flex-col gap-3 rounded-xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between"
+            className="flex flex-col gap-3 rounded-xl border bg-card p-4"
           >
-            <div className="space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline" style={{ borderColor: item.categoryColor }}>
-                  {item.categoryName}
-                </Badge>
-                <Badge variant={item.active ? "default" : "secondary"}>
-                  {item.active ? copy.recurring.active : copy.recurring.inactive}
-                </Badge>
+            <div className="flex items-start justify-between gap-2">
+              <div
+                className="flex size-12 shrink-0 flex-col items-center justify-center rounded-lg bg-muted text-sm font-semibold"
+                aria-hidden
+              >
+                <span className="text-[10px] uppercase text-muted-foreground">
+                  dia
+                </span>
+                <span>{item.dayOfMonth}</span>
               </div>
-              <p className="font-medium">
-                {item.type === "INCOME" ? "+" : "-"}
-                {formatCurrency(item.amount)}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {copy.recurring.everyMonth} {item.dayOfMonth}
-                {item.description ? ` · ${item.description}` : ""}
-              </p>
+              <div className="min-w-0 flex-1 space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline" style={{ borderColor: item.categoryColor }}>
+                    {item.categoryName}
+                  </Badge>
+                  <Badge variant={item.active ? "default" : "secondary"}>
+                    {item.active ? copy.recurring.active : copy.recurring.inactive}
+                  </Badge>
+                </div>
+                <p
+                  className={
+                    item.type === "INCOME" ? incomeClass("font-semibold") : expenseClass("font-semibold")
+                  }
+                >
+                  {item.type === "INCOME" ? "+" : "-"}
+                  {formatCurrency(item.amount)}
+                </p>
+                {item.description && (
+                  <p className="truncate text-sm text-muted-foreground">
+                    {item.description}
+                  </p>
+                )}
+              </div>
             </div>
-            <div className="flex gap-1">
+            <div className="flex gap-1 border-t pt-3">
               <Button
                 variant="outline"
                 size="sm"
+                className="flex-1"
                 onClick={() => toggleActive(item.id, !item.active)}
               >
                 {item.active ? copy.recurring.inactive : copy.recurring.active}
               </Button>
-              <Button variant="ghost" size="icon-sm" onClick={() => openEdit(item)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-9"
+                aria-label={copy.recurring.edit}
+                onClick={() => openEdit(item)}
+              >
                 <Pencil className="size-4" />
               </Button>
               <Button
                 variant="ghost"
-                size="icon-sm"
+                size="icon"
+                className="size-9"
+                aria-label={copy.categories.delete}
                 onClick={() => setPendingDeleteId(item.id)}
               >
                 <Trash2 className="size-4" />

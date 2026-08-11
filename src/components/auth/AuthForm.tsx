@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useActionState } from "react";
-import { loginAction, registerAction } from "@/app/actions/auth";
+import { loginAction, registerAction, demoLoginFormAction } from "@/app/actions/auth";
 import { AuthBanner } from "@/components/auth/AuthBanner";
 import { Button } from "@/components/ui/button";
 import {
@@ -45,6 +45,18 @@ export function AuthForm({ mode, callbackUrl }: AuthFormProps) {
           <AuthBanner variant="redirect" />
         )}
         {mode === "login" && !callbackUrl && <AuthBanner variant="demo" />}
+        {mode === "login" && (
+          <form action={demoLoginFormAction}>
+            <Button
+              type="submit"
+              variant="secondary"
+              className="w-full"
+              data-testid="demo-login-button"
+            >
+              {copy.auth.demoSignIn}
+            </Button>
+          </form>
+        )}
         <form action={formAction} className="space-y-4">
           {mode === "register" && (
             <div className="space-y-2">

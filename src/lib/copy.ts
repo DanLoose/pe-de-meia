@@ -22,6 +22,7 @@ export const copy = {
     loginRequired: "Faça login para acessar esta página.",
     demoTitle: "Conta demo para testes",
     demoEmail: "E-mail:",
+    demoSignIn: "Entrar com conta demo",
     passwordHint: "Mínimo de 8 caracteres.",
   },
   entry: {
@@ -64,6 +65,8 @@ export const copy = {
     updating: "Atualizando calendário...",
     loadError: "Não foi possível carregar o calendário",
     clickDayHint: "Clique em um dia para ver ou adicionar lançamentos.",
+    clickDayHintDismiss: "Entendi",
+    newEntryForDate: "Novo lançamento ·",
     today: "Hoje",
   },
   deleteConfirm: {
@@ -102,6 +105,7 @@ export const copy = {
     saveBudget: "Salvar",
     budgetMonthLabel: "Orçamentos de",
     budgetHint: "Defina um limite mensal por categoria de despesa.",
+    setBudget: "Definir orçamento",
     empty: "Nenhuma categoria cadastrada.",
     deleteTitle: "Excluir categoria?",
     deleteDescription:

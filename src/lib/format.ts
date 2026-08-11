@@ -16,3 +16,11 @@ export function formatDateLabel(date: string): string {
     year: "numeric",
   }).format(new Date(year, month - 1, day));
 }
+
+export function formatShortDateLabel(date: string): string {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Intl.DateTimeFormat("pt-BR", {
+    day: "numeric",
+    month: "short",
+  }).format(new Date(year, month - 1, day));
+}
