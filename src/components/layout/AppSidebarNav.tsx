@@ -24,11 +24,21 @@ const links = [
   { href: "/menu", label: copy.nav.menu, icon: Menu },
 ];
 
-export function AppNav() {
+interface AppSidebarNavProps {
+  collapsed?: boolean;
+  onNavigate?: () => void;
+  className?: string;
+}
+
+export function AppSidebarNav({
+  collapsed,
+  onNavigate,
+  className,
+}: AppSidebarNavProps) {
   const pathname = usePathname();
 
   return (
-    <nav className="flex items-center gap-1 overflow-x-auto">
+    <nav className={cn("flex flex-col gap-0.5", className)}>
       {links.map((link) => {
         const Icon = link.icon;
         const active =
@@ -38,16 +48,18 @@ export function AppNav() {
           <Link
             key={link.href}
             href={link.href}
+            onClick={onNavigate}
+            title={collapsed ? link.label : undefined}
             className={cn(
-              "flex items-center gap-1.5 whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+              collapsed && "justify-center px-2",
               active
                 ? "bg-primary text-primary-foreground"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
             )}
           >
             <Icon className="size-4 shrink-0" />
-            <span className="hidden sm:inline">{link.label}</span>
-            <span className="sm:hidden">{link.label.split(" ")[0]}</span>
+            {!collapsed && <span className="truncate">{link.label}</span>}
           </Link>
         );
       })}

@@ -1,14 +1,14 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { fetchLedgerMonthAction } from "@/app/actions/ledger";
 import { BalanceCell } from "@/components/ledger/BalanceCell";
 import { LedgerDaySheet } from "@/components/ledger/LedgerDaySheet";
 import { Button } from "@/components/ui/button";
 import { copy } from "@/lib/copy";
-import { expenseClass, incomeClass, zeroValueClass } from "@/lib/design";
+import { expenseClass, incomeClass, ledgerMovementClass, ledgerRowHasActivity } from "@/lib/design";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { CategoryDTO, LedgerMonthData } from "@/types";
@@ -38,15 +38,21 @@ function MoneyCell({
   value: number;
   variant: "income" | "expense" | "neutral";
 }) {
-  const colorClass =
-    variant === "income"
-      ? incomeClass()
-      : variant === "expense"
-        ? expenseClass()
-        : "";
+  if (value === 0) {
+    return (
+      <td className="px-3 py-1.5 text-right text-sm tabular-nums text-muted-foreground/35">
+        —
+      </td>
+    );
+  }
 
   return (
-    <td className={cn("px-3 py-1.5 text-right text-sm", zeroValueClass(value), colorClass)}>
+    <td
+      className={cn(
+        "px-3 py-1.5 text-right text-sm",
+        ledgerMovementClass(value, variant),
+      )}
+    >
       {formatCurrency(value)}
     </td>
   );
@@ -66,6 +72,15 @@ export function LedgerTable({
   const year = data.year;
   const month = data.month;
   const showExtendedColumns = true;
+
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (!hash.startsWith("#day-")) {
+      return;
+    }
+    const row = document.querySelector(hash);
+    row?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [year, month, today]);
 
   const navigateMonth = useCallback(
     (delta: number) => {
@@ -158,18 +173,39 @@ export function LedgerTable({
             <tbody>
               {data.rows.map((row) => {
                 const isToday = row.date === today;
+                const hasActivity = ledgerRowHasActivity(row);
                 return (
                   <tr
                     key={row.date}
+                    id={isToday ? `day-${row.date}` : undefined}
                     data-testid={`ledger-row-${row.date}`}
+                    data-has-activity={hasActivity ? "true" : "false"}
                     className={cn(
                       "cursor-pointer border-b transition-colors hover:bg-muted/40",
+                      !hasActivity && !isToday && "bg-muted/20",
+                      hasActivity && "bg-card",
                       isToday && "bg-primary/5 ring-1 ring-inset ring-primary/20",
                     )}
                     onClick={() => handleDayClick(row.date)}
                   >
-                    <td className="px-3 py-1.5 font-medium tabular-nums">
-                      {String(row.day).padStart(2, "0")}
+                    <td
+                      className={cn(
+                        "px-3 py-1.5 tabular-nums",
+                        hasActivity || isToday
+                          ? "font-semibold text-foreground"
+                          : "font-normal text-muted-foreground/55",
+                        isToday && "text-primary",
+                      )}
+                    >
+                      <span className="inline-flex items-center gap-2">
+                        {hasActivity && (
+                          <span
+                            className="size-1.5 shrink-0 rounded-full bg-primary"
+                            aria-hidden
+                          />
+                        )}
+                        {String(row.day).padStart(2, "0")}
+                      </span>
                     </td>
                     <MoneyCell value={row.income} variant="income" />
                     <MoneyCell value={row.expense} variant="expense" />
@@ -180,7 +216,7 @@ export function LedgerTable({
                         <MoneyCell value={row.card} variant="expense" />
                       </>
                     )}
-                    <BalanceCell value={row.balance} />
+                    <BalanceCell value={row.balance} muted={!hasActivity} />
                   </tr>
                 );
               })}

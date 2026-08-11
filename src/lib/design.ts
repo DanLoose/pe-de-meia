@@ -43,7 +43,80 @@ export function balanceHeatmapClass(
 export function zeroValueClass(value: number, className?: string) {
   return cn(
     moneyClass,
-    value === 0 && "text-muted-foreground/50",
+    value === 0 && "text-muted-foreground/35",
     className,
   );
+}
+
+export function ledgerMovementClass(
+  value: number,
+  variant: "income" | "expense" | "neutral",
+  className?: string,
+) {
+  if (value === 0) {
+    return cn(moneyClass, "text-muted-foreground/35", className);
+  }
+
+  const colorClass =
+    variant === "income"
+      ? incomeClass()
+      : variant === "expense"
+        ? expenseClass()
+        : "text-foreground";
+
+  return cn(colorClass, "font-semibold", className);
+}
+
+export function ledgerBalanceClass(
+  value: number,
+  lowThreshold = DEFAULT_LOW_THRESHOLD,
+  options?: { muted?: boolean; className?: string },
+) {
+  const { muted, className } = options ?? {};
+
+  if (muted && value >= 0 && value > lowThreshold) {
+    return cn(moneyClass, "text-muted-foreground/65", className);
+  }
+
+  return balanceHeatmapClass(value, lowThreshold, className);
+}
+
+export function ledgerRowHasActivity(row: {
+  income: number;
+  expense: number;
+  daily: number;
+  savings: number;
+  card: number;
+}): boolean {
+  return (
+    row.income !== 0 ||
+    row.expense !== 0 ||
+    row.daily !== 0 ||
+    row.savings !== 0 ||
+    row.card !== 0
+  );
+}
+
+export function horizonDayClass(
+  balance: number,
+  lowThreshold: number,
+  options?: {
+    isPast?: boolean;
+    isProjected?: boolean;
+    className?: string;
+  },
+) {
+  const { isPast, isProjected, className } = options ?? {};
+
+  if (isPast && balance >= 0 && balance > lowThreshold) {
+    return cn(moneyClass, "bg-muted/30 text-muted-foreground", className);
+  }
+
+  const heatmap = balanceHeatmapClass(balance, lowThreshold, className);
+
+  if (isProjected && balance >= 0 && balance > lowThreshold) {
+    return cn(heatmap, "border border-dashed border-border/80 bg-background/80", className);
+  }
+
+  return heatmap;
 }

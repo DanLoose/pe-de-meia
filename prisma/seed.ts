@@ -51,6 +51,24 @@ async function main() {
     }
   }
 
+  const testCategories = await prisma.category.findMany({
+    where: {
+      userId: user.id,
+      OR: [{ name: { startsWith: "US12" } }, { name: { startsWith: "E2E" } }],
+    },
+    select: { id: true },
+  });
+
+  if (testCategories.length > 0) {
+    const ids = testCategories.map((category) => category.id);
+    await prisma.transaction.deleteMany({
+      where: { categoryId: { in: ids } },
+    });
+    await prisma.category.deleteMany({
+      where: { id: { in: ids } },
+    });
+  }
+
   console.log("Seed complete.");
   console.log("Demo login: demo@pedemeia.dev / password123");
 }

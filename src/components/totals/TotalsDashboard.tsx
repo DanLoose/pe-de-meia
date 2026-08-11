@@ -114,6 +114,14 @@ export function TotalsDashboard({ data, today }: TotalsDashboardProps) {
           value={dailyValue}
           status={data.dailyStatus}
           valueClassName={expenseClass()}
+          statusAction={
+            data.dailyCeiling === null
+              ? {
+                  href: "/menu/previsao-diario",
+                  label: copy.totals.configureDailyCeiling,
+                }
+              : undefined
+          }
         />
       </div>
 

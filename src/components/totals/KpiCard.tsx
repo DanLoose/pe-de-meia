@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { balanceClass, expenseClass, incomeClass, moneyClass } from "@/lib/design";
 import { cn } from "@/lib/utils";
@@ -8,6 +9,7 @@ interface KpiCardProps {
   status: string;
   valueClassName?: string;
   progress?: number;
+  statusAction?: { href: string; label: string };
 }
 
 export function KpiCard({
@@ -16,6 +18,7 @@ export function KpiCard({
   status,
   valueClassName,
   progress,
+  statusAction,
 }: KpiCardProps) {
   return (
     <Card>
@@ -28,7 +31,20 @@ export function KpiCard({
         <p className={cn("text-2xl font-semibold", moneyClass, valueClassName)}>
           {value}
         </p>
-        <p className="mt-1 text-sm text-muted-foreground">{status}</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          {status}
+          {statusAction && (
+            <>
+              {" · "}
+              <Link
+                href={statusAction.href}
+                className="font-medium text-primary hover:underline"
+              >
+                {statusAction.label}
+              </Link>
+            </>
+          )}
+        </p>
         {progress !== undefined && (
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
             <div

@@ -1,9 +1,15 @@
 import { prisma } from "@/lib/db";
 import { formatDateOnly, parseDateOnly } from "@/lib/dates";
 import { resolveLedgerColumn } from "@/lib/ledger-columns";
+import { ledgerRowHasActivity } from "@/lib/design";
 import { getLedgerMonth, getUserOpeningBalance } from "@/lib/services/ledger";
 import { ensureRecurringTransactions } from "@/lib/services/recurring";
-import type { HorizonData, HorizonDayCell, HorizonMonthColumn } from "@/types";
+import type {
+  HorizonData,
+  HorizonDayCell,
+  HorizonMonthColumn,
+  HorizonSummary,
+} from "@/types";
 
 const DEFAULT_LOW_THRESHOLD = 500;
 const DEFAULT_MONTHS = 3;
@@ -19,10 +25,10 @@ function addDays(dateStr: string, days: number): string {
 }
 
 function monthShortLabel(year: number, month: number): string {
-  return new Intl.DateTimeFormat("pt-BR", {
-    month: "short",
-    year: "2-digit",
-  }).format(new Date(year, month - 1, 1));
+  const short = new Intl.DateTimeFormat("pt-BR", { month: "short" })
+    .format(new Date(year, month - 1, 1))
+    .replace(".", "");
+  return `${short}/${String(year).slice(-2)}`;
 }
 
 function netEffectForColumn(
@@ -73,6 +79,71 @@ function projectedRecurringForDate(
   return net;
 }
 
+function buildSummary(
+  today: string,
+  balanceByDate: Map<string, number>,
+  endDate: string,
+): HorizonSummary {
+  const currentBalance = balanceByDate.get(today) ?? 0;
+
+  let endBalance = currentBalance;
+  let lowestBalance = currentBalance;
+  let lowestDate = today;
+  let firstNegativeDate: string | null = null;
+  let firstNegativeBalance: number | null = null;
+
+  let cursor = today;
+  while (cursor <= endDate) {
+    const balance = balanceByDate.get(cursor) ?? endBalance;
+    endBalance = balance;
+
+    if (balance < lowestBalance) {
+      lowestBalance = balance;
+      lowestDate = cursor;
+    }
+
+    if (firstNegativeDate === null && balance < 0) {
+      firstNegativeDate = cursor;
+      firstNegativeBalance = balance;
+    }
+
+    cursor = addDays(cursor, 1);
+  }
+
+  return {
+    currentBalance,
+    endBalance,
+    lowestBalance,
+    lowestDate,
+    firstNegativeDate,
+    firstNegativeBalance,
+  };
+}
+
+function buildDayCell(
+  dateStr: string,
+  today: string,
+  balance: number,
+  prevBalance: number,
+  recurringDelta: number,
+  hasPastMovement: boolean,
+): HorizonDayCell {
+  const isPast = dateStr < today;
+  const isToday = dateStr === today;
+  const isFuture = dateStr > today;
+
+  return {
+    date: dateStr,
+    balance,
+    isPast,
+    isToday,
+    isFuture,
+    isProjected: isFuture,
+    hasRecurring: isFuture ? recurringDelta !== 0 : hasPastMovement,
+    delta: balance - prevBalance,
+  };
+}
+
 export async function getHorizon(
   userId: string,
   startDate: string,
@@ -120,6 +191,23 @@ export async function getHorizon(
     cursor = addDays(cursor, 1);
   }
 
+  const ledgerRowByDate = new Map(ledger.rows.map((row) => [row.date, row]));
+
+  const allBalances = new Map<string, number>();
+  for (const row of ledger.rows) {
+    if (row.date <= today) {
+      allBalances.set(row.date, row.balance);
+    }
+  }
+  for (const [dateStr, value] of balanceByDate.entries()) {
+    allBalances.set(dateStr, value);
+  }
+
+  function previousBalance(dateStr: string): number {
+    const prevDate = addDays(dateStr, -1);
+    return allBalances.get(prevDate) ?? allBalances.get(dateStr) ?? 0;
+  }
+
   const monthColumns: HorizonMonthColumn[] = [];
   let colYear = year;
   let colMonth = month;
@@ -130,17 +218,41 @@ export async function getHorizon(
 
     for (let day = 1; day <= dayCount; day++) {
       const dateStr = `${colYear}-${String(colMonth).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-      if (dateStr >= today && dateStr <= endDate) {
-        days.push({
-          date: dateStr,
-          balance: balanceByDate.get(dateStr) ?? running,
-        });
-      } else if (dateStr < today) {
-        const row = ledger.rows.find((r) => r.date === dateStr);
+
+      if (dateStr > endDate) {
+        continue;
+      }
+
+      let cellBalance: number | null = null;
+
+      if (dateStr >= today) {
+        cellBalance = balanceByDate.get(dateStr) ?? running;
+      } else {
+        const row = ledgerRowByDate.get(dateStr);
         if (row) {
-          days.push({ date: dateStr, balance: row.balance });
+          cellBalance = row.balance;
         }
       }
+
+      if (cellBalance === null) {
+        continue;
+      }
+
+      const recurringDelta = projectedRecurringForDate(rules, dateStr);
+      const pastRow = ledgerRowByDate.get(dateStr);
+      const hasPastMovement = pastRow ? ledgerRowHasActivity(pastRow) : false;
+      const prevBalance = previousBalance(dateStr);
+
+      days.push(
+        buildDayCell(
+          dateStr,
+          today,
+          cellBalance,
+          prevBalance,
+          recurringDelta,
+          hasPastMovement,
+        ),
+      );
     }
 
     monthColumns.push({
@@ -158,7 +270,10 @@ export async function getHorizon(
   }
 
   return {
+    today,
+    monthsCount: months,
     months: monthColumns,
     lowThreshold,
+    summary: buildSummary(today, balanceByDate, endDate),
   };
 }
