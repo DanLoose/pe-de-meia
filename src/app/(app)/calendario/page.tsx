@@ -1,8 +1,6 @@
 import { format } from "date-fns";
 import { FinanceCalendar } from "@/components/calendar/FinanceCalendar";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { auth } from "@/lib/auth";
-import { copy } from "@/lib/copy";
 import { getCategoriesByUser } from "@/lib/services/categories";
 import { getTransactionsByMonth } from "@/lib/services/transactions";
 import { redirect } from "next/navigation";
@@ -24,17 +22,11 @@ export default async function CalendarioPage() {
   ]);
 
   return (
-    <div className="space-y-[var(--section-gap)]">
-      <PageHeader
-        title={copy.calendarTitle}
-        description={copy.calendarSubtitle}
-      />
-      <FinanceCalendar
-        categories={categories}
-        initialSummaries={monthData.dailySummaries}
-        initialBudgetSummary={monthData.budgetSummary ?? null}
-        today={today}
-      />
-    </div>
+    <FinanceCalendar
+      categories={categories}
+      initialSummaries={monthData.dailySummaries}
+      initialBudgetSummary={monthData.budgetSummary ?? null}
+      today={today}
+    />
   );
 }

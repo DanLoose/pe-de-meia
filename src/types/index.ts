@@ -114,6 +114,12 @@ export interface MonthTotalsData {
 export interface HorizonDayCell {
   date: string;
   balance: number;
+  isPast: boolean;
+  isToday: boolean;
+  isFuture: boolean;
+  isProjected: boolean;
+  hasRecurring: boolean;
+  delta: number;
 }
 
 export interface HorizonMonthColumn {
@@ -123,9 +129,21 @@ export interface HorizonMonthColumn {
   days: HorizonDayCell[];
 }
 
+export interface HorizonSummary {
+  currentBalance: number;
+  endBalance: number;
+  lowestBalance: number;
+  lowestDate: string;
+  firstNegativeDate: string | null;
+  firstNegativeBalance: number | null;
+}
+
 export interface HorizonData {
+  today: string;
+  monthsCount: number;
   months: HorizonMonthColumn[];
   lowThreshold: number;
+  summary: HorizonSummary;
 }
 
 export interface FixedExpenseDTO {

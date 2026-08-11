@@ -24,3 +24,23 @@ export function formatShortDateLabel(date: string): string {
     month: "short",
   }).format(new Date(year, month - 1, day));
 }
+
+/** Compact currency for dense grids (e.g. horizonte). */
+export function formatCompactCurrency(value: number): string {
+  const abs = Math.abs(value);
+  const sign = value < 0 ? "−" : "";
+
+  if (abs >= 1_000_000) {
+    return `${sign}R$ ${(abs / 1_000_000).toFixed(1).replace(".", ",")}M`;
+  }
+  if (abs >= 1_000) {
+    const scaled = abs / 1_000;
+    const formatted =
+      scaled >= 100
+        ? scaled.toFixed(0)
+        : scaled.toFixed(1).replace(".", ",");
+    return `${sign}R$ ${formatted}K`;
+  }
+
+  return formatCurrency(value);
+}
