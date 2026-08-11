@@ -1,6 +1,7 @@
-import { TransactionType } from "@/generated/prisma/client";
+import { TransactionType, type LedgerColumn } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { DEFAULT_CATEGORIES } from "@/lib/default-categories";
+import { defaultLedgerColumnForType } from "@/lib/ledger-columns";
 import {
   createCategorySchema,
   deleteCategorySchema,
@@ -25,12 +26,14 @@ function toCategoryDTO(category: {
   name: string;
   color: string;
   type: TransactionType;
+  ledgerColumn: LedgerColumn;
 }): CategoryDTO {
   return {
     id: category.id,
     name: category.name,
     color: category.color,
     type: category.type,
+    ledgerColumn: category.ledgerColumn,
   };
 }
 
@@ -61,6 +64,8 @@ export async function createCategory(
       name: data.name,
       color: data.color,
       type: data.type,
+      ledgerColumn:
+        data.ledgerColumn ?? defaultLedgerColumnForType(data.type),
     },
   });
 
@@ -86,6 +91,7 @@ export async function updateCategory(
       name: data.name,
       color: data.color,
       type: data.type,
+      ...(data.ledgerColumn ? { ledgerColumn: data.ledgerColumn } : {}),
     },
   });
 

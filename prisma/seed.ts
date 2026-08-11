@@ -42,6 +42,13 @@ async function main() {
         data: { name: localizedName },
       });
     }
+
+    for (const category of DEFAULT_CATEGORIES) {
+      await prisma.category.updateMany({
+        where: { userId: user.id, name: category.name, type: category.type },
+        data: { ledgerColumn: category.ledgerColumn },
+      });
+    }
   }
 
   console.log("Seed complete.");
