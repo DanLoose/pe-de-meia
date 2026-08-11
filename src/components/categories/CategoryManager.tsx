@@ -29,9 +29,10 @@ import {
 } from "@/components/ui/select";
 import { CATEGORY_COLOR_OPTIONS } from "@/lib/category-colors";
 import { copy } from "@/lib/copy";
+import { LEDGER_COLUMN_LABELS } from "@/lib/ledger-columns";
 import { formatCurrency } from "@/lib/format";
 import { appToast } from "@/lib/toast";
-import type { CategoryBudgetDTO, CategoryDTO, TransactionType } from "@/types";
+import type { CategoryBudgetDTO, CategoryDTO, LedgerColumn, TransactionType } from "@/types";
 
 interface CategoryManagerProps {
   categories: CategoryDTO[];
@@ -46,12 +47,14 @@ type CategoryFormState = {
   name: string;
   color: string;
   type: TransactionType;
+  ledgerColumn: LedgerColumn;
 };
 
 const emptyForm: CategoryFormState = {
   name: "",
   color: CATEGORY_COLOR_OPTIONS[0],
   type: "EXPENSE",
+  ledgerColumn: "EXPENSE",
 };
 
 export function CategoryManager({
@@ -92,6 +95,7 @@ export function CategoryManager({
       name: category.name,
       color: category.color,
       type: category.type,
+      ledgerColumn: category.ledgerColumn,
     });
     setFormOpen(true);
   };
@@ -102,6 +106,7 @@ export function CategoryManager({
         name: form.name,
         color: form.color,
         type: form.type,
+        ledgerColumn: form.ledgerColumn,
         ...(form.id ? { id: form.id } : {}),
       };
 
@@ -217,9 +222,7 @@ export function CategoryManager({
                   <div>
                     <p className="font-medium">{category.name}</p>
                     <Badge variant="outline" className="mt-1">
-                      {category.type === "INCOME"
-                        ? copy.entry.income
-                        : copy.entry.expense}
+                      {LEDGER_COLUMN_LABELS[category.ledgerColumn]}
                     </Badge>
                   </div>
                 </div>
@@ -336,6 +339,31 @@ export function CategoryManager({
                 <SelectContent>
                   <SelectItem value="INCOME">{copy.entry.income}</SelectItem>
                   <SelectItem value="EXPENSE">{copy.entry.expense}</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>{copy.categories.ledgerColumn}</Label>
+              <Select
+                value={form.ledgerColumn}
+                onValueChange={(value) =>
+                  setForm((current) => ({
+                    ...current,
+                    ledgerColumn: (value ?? "EXPENSE") as LedgerColumn,
+                  }))
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <span>{LEDGER_COLUMN_LABELS[form.ledgerColumn]}</span>
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(LEDGER_COLUMN_LABELS) as LedgerColumn[]).map(
+                    (column) => (
+                      <SelectItem key={column} value={column}>
+                        {LEDGER_COLUMN_LABELS[column]}
+                      </SelectItem>
+                    ),
+                  )}
                 </SelectContent>
               </Select>
             </div>
