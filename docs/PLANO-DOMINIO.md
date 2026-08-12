@@ -1,6 +1,8 @@
 # Plano de implementação — domínio de caixa, cartão e economias
 
-Alinhado a [`DOMINIO.md`](./DOMINIO.md). Objetivo: o Saldo da planilha passa a ser caixa real; Cartão vira compromisso + fatura; Economias saem da conta.
+Alinhado a [`DOMINIO.md`](./DOMINIO.md). Objetivo histórico: o Saldo da planilha passa a ser caixa real; Cartão vira compromisso + fatura; Economias saem da conta.
+
+> **Produto v3 (ago/2026):** a definição ativa em [`PRODUTO.md`](./PRODUTO.md) / [`DOMINIO.md`](./DOMINIO.md) remove **Diário/teto** do núcleo. `FixedMonthlyExpense` = **gastos variáveis (estimativa)**; recorrentes = receitas/gastos fixos. Teto/`dailyDivisor` ficam para fase V3. Este plano documenta o trabalho de caixa/cartão já feito — não reintroduzir teto diário sem alinhar ao produto.
 
 Não misturar nesta entrega: redesign visual de Totais/Horizonte, multi-cartão avançado, fatura parcial.
 

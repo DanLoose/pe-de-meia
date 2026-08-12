@@ -1,8 +1,39 @@
 # Pé-de-meia — Domínio financeiro
 
-Fonte de verdade para o significado das colunas da planilha, do saldo e dos módulos que dependem delas.
+Fonte de verdade do significado financeiro do produto.
 
-**Saldos mede o caixa da conta corrente.** Só altera o **Saldo** o que entra ou sai de fato do banco (PIX, TED, débito, dinheiro, crédito de salário, pagamento de fatura).
+**Versão de produto:** v3 (simplificado) — agosto/2026.
+
+**Saldos** (quando em uso) mede o **caixa da conta corrente**. Só altera o **Saldo** o que entra ou sai de fato do banco (PIX, TED, débito, dinheiro, crédito de salário, pagamento de fatura).
+
+---
+
+## 0. Vocabulário ativo (v1)
+
+Três blocos de configuração. Sem jargão **Diário** e sem **teto diário** nesta fase.
+
+| Bloco | O que é | Papel |
+|-------|---------|--------|
+| **Receitas fixas** | Fontes que se repetem (salário, etc.) | Entrada previsível |
+| **Gastos fixos** | Contas/compromissos que se repetem (aluguel, internet…) | Parte do custo de vida |
+| **Gastos variáveis (estimativa)** | Orçamento do que se *espera* gastar no variável do mês (mercado, lazer, transporte…) | Parte do custo de vida — **meta**, não lançamento |
+
+```text
+custo_de_vida ≈ Σ gastos_fixos + Σ gastos_variáveis(estimativa)
+folga         ≈ Σ receitas_fixas − custo_de_vida
+```
+
+A estimativa **não** materializa lançamentos e **não** se divide por dias (sem teto/dia).
+
+### Fases de produto
+
+| Fase | Conteúdo |
+|------|----------|
+| **V1 (agora)** | Receitas fixas + gastos fixos + gastos variáveis (estimativa) → custo de vida / folga |
+| **V2 (próxima)** | Registros do dia com **método de pagamento** (conta vs cartão); um lançamento = um destino de caixa; ainda sem nomenclatura Diário nem teto |
+| **V3 (madura)** | Opcional: nomenclatura/coluna Diário + teto (estimativa ÷ divisor de dias) |
+
+Até a V3, **não** prometer Diário/teto na copy nem no onboarding.
 
 ---
 
@@ -13,199 +44,179 @@ Fonte de verdade para o significado das colunas da planilha, do saldo e dos mód
 | **Conta (caixa)** | Movimento real na conta | Sim |
 | **Cartão de crédito** | Compra agora, paga no vencimento | Não, até o pagamento da fatura |
 | **Reserva** | Transferência da conta para poupança/investimento | Sim (sai do caixa) |
-| **Orçamento** | Teto do que se *pode* gastar em diários | Não (meta, não movimento) |
+| **Orçamento** | Estimativa de gastos variáveis do mês | Não (meta, não movimento) |
 
-Pergunta-chave para classificar um lançamento: **o dinheiro saiu (ou entrou) na conta hoje?**
+Pergunta-chave para classificar um lançamento (V2+): **o dinheiro saiu (ou entrou) na conta hoje?**
 
 ---
 
-## 2. Colunas da planilha
+## 2. Compromissos vs estimativa (V1)
 
-### 2.1 Entradas (`INCOME`)
+### 2.1 Receitas fixas
 
-Qualquer ganho que **entra na conta**.
+Recorrentes de entrada (`RecurringTransaction` com tipo renda / coluna Entradas).
 
-- Exemplos: salário, freela, doação, bônus, reembolso, rendimento sacado.
-- Efeito no caixa: `+ saldo` no dia do crédito.
-- Não é: limite de cartão, cashback ainda não creditado, “ganho” que só reduz a fatura.
+- Exemplos: salário, pensão, aluguel recebido.
+- Materializam lançamentos de **Entrada** nos dias configurados.
+- Alimentam a folga do mês na visão orçamentária.
 
-### 2.2 Saídas (`EXPENSE`)
+### 2.2 Gastos fixos
 
-**Contas e compromissos pagos da conta**, em geral com valor e dia conhecidos.
+Recorrentes de saída da conta (`RecurringTransaction` de despesa / coluna Saídas).
 
 - Exemplos: aluguel, internet, telefone, condomínio, escola, seguro, financiamento, IPTU.
-- Efeito no caixa: `− saldo` no **dia do pagamento**.
-- Pode ser recorrente (dia de vencimento).
-- Não é: mercado, iFood, Uber, lazer (Diário).
-- Não é: compra no crédito (Cartão).
-- “Fixa” significa **obrigação previsível**, não “o valor nunca muda”.
+- “Fixa” = **obrigação previsível**, não “o valor nunca muda”.
+- **Não** misturar com itens da estimativa variável (aluguel ≠ mercado).
 
-### 2.3 Diários (`DAILY`)
+### 2.3 Gastos variáveis (estimativa)
 
-Gasto **variável do dia a dia**, pago à vista (débito, PIX, dinheiro).
+Lista mensal de o que se *espera* gastar no consumo variável (`FixedMonthlyExpense` no schema — nome legado).
 
-- Exemplos: mercado, padaria, delivery, lazer, transporte por app.
-- Efeito no caixa: `− saldo` no dia em que o dinheiro saiu.
-- Orçamentável: é o alvo da **Previsão de diário**.
-- Critério: se o valor não é conhecido no começo do mês e se paga quando consome → Diário.
-- Não é: conta com vencimento fixo.
-- Não é: a mesma compra feita no crédito (isso é Cartão).
+- Exemplos: mercado, combustível, delivery, lazer, transporte por app.
+- Entra no **custo de vida** como soma mensal.
+- Não é lançamento; não gera linha na planilha sozinha.
+- Aluguel, internet e fatura **não** entram nesta lista.
 
-### 2.4 Cartão (`CARD`)
+---
 
-Gasto **no crédito**. O consumo é num dia; o caixa só é afetado no **vencimento da fatura**.
+## 3. Colunas da planilha (ledger — legado em código, V2+)
 
-Há dois tipos de linha na mesma coluna:
+O schema ainda tem cinco colunas. Na **linguagem de produto V1** o protagonismo é o trio fixo/estimativa. As colunas continuam válidas para caixa quando houver lançamentos.
+
+### 3.1 Entradas (`INCOME`)
+
+Ganho que **entra na conta**. Efeito: `+ saldo` no dia do crédito.
+
+### 3.2 Saídas (`EXPENSE`)
+
+Contas/compromissos **pagos da conta**. Efeito: `− saldo` no dia do pagamento. Em geral alimentadas por **gastos fixos** recorrentes.
+
+### 3.3 Coluna `DAILY` (legado de código)
+
+Gasto variável **à vista** (débito, PIX, dinheiro). Ainda existe no schema e na planilha.
+
+- **Fora da linguagem V1** (não chamar de “Diário” na narrativa de produto).
+- Na **V2**, o equivalente é “gastei da conta” via método de pagamento — sem marca “Diário”.
+- Na **V3**, pode voltar nomenclatura/teto se fizer sentido.
+
+### 3.4 Cartão (`CARD`)
+
+Gasto **no crédito**. Consumo num dia; caixa só no **vencimento da fatura**.
 
 | Tipo | Quando | Aparece na coluna | Mexe no Saldo? |
 |------|--------|-------------------|----------------|
 | **Compra (compromisso)** | Dia da compra | Sim | Não |
 | **Pagamento da fatura (caixa)** | Dia do vencimento | Sim | Sim (`−`) |
 
-- Parcelas: cada parcela pertence à fatura do mês correspondente.
-- Assinatura no cartão (Netflix etc.) é Cartão, não Saída.
-- Débito automático de internet na conta é Saída, não Cartão.
+Eixo narrativo forte a partir da **V2** (método de pagamento). Na V1 não é o foco do onboarding.
 
-A fatura **não** é despesa fixa. É um **compromisso de data fixa e valor variável** (soma das compras do ciclo).
+**Regra (V2+):** um lançamento = uma coluna. Meio de pagamento decide. Nunca Diário+Cartão ao mesmo tempo. A natureza do consumo (comida, lazer) vai na **tag**.
 
-| | Saída (conta) | Fatura (Cartão) |
-|--|---------------|-----------------|
-| Data | vencimento conhecido | vencimento conhecido |
-| Valor | conhecido (ou quase) | depende das compras do ciclo |
-| Recorrência | o lançamento se repete | o ciclo se repete; o valor não |
-| Previsão de diário | não entra no teto | não entra no teto |
+### 3.5 Economias (`SAVINGS`)
 
-### 2.5 Economias (`SAVINGS`)
+Dinheiro **tirado da conta para guardar**. `− saldo`; em Totais conta como economizado, **não** como custo de vida.
 
-Dinheiro **tirado da conta para guardar** (poupança, reserva, investimento).
-
-- Efeito no caixa: `− saldo` (sai da conta corrente).
-- Em Totais: conta como “economizado”, **não** como custo de vida.
-- Não é sobra contábil. A sobra já está no saldo por não ter sido gasta; registrar de novo como `+` seria double count.
-- Resgate da reserva para a conta é **Entrada** (ou Economia negativa, se no futuro houver sentido de edição), não “economia positiva no caixa”.
-
-### 2.6 Saldo
-
-Não é coluna de lançamento. É o acumulado de caixa:
+### 3.6 Saldo
 
 ```
 saldo[d] = saldo[d-1]
          + entradas[d]
          − saídas[d]
-         − diários[d]
+         − gastos_à_vista[d]   // coluna DAILY no código
          − pagamentos_de_fatura[d]
          − economias[d]
 ```
 
-Compras no cartão **aparecem** na coluna Cartão no dia da compra e **não entram** nesta fórmula.
+Compras no cartão aparecem na coluna Cartão e **não** entram nesta fórmula até o pagamento.
 
-**Saldo inicial:** `openingBalance` do usuário (ponto de partida da conta).
+**Saldo inicial:** `openingBalance`.
 
 ---
 
-## 3. Teste de classificação
+## 4. Teste de classificação (lançamentos)
 
-| Situação | Coluna | Caixa no dia? |
-|----------|--------|---------------|
+| Situação | Destino | Caixa no dia? |
+|----------|---------|---------------|
 | Salário caiu na conta | Entrada | Sim (`+`) |
 | Aluguel no dia 5 | Saída | Sim (`−`) |
-| Mercado no débito/PIX | Diário | Sim (`−`) |
+| Mercado no débito/PIX | À vista (`DAILY`) | Sim (`−`) |
 | Mercado no crédito | Cartão (compra) | Não |
 | Fatura vence dia 10 | Cartão (pagamento) | Sim (`−`) |
 | PIX para poupança | Economia | Sim (`−`) |
-| Netflix no cartão | Cartão (compra) | Não |
-| Internet no débito automático | Saída | Sim (`−`) |
+| Item só na lista de estimativa | Orçamento | Não (meta) |
 
 ---
 
-## 4. Fatura de cartão
+## 5. Fatura de cartão
 
-Conceito próprio, não um `FixedMonthlyExpense`.
+Conceito próprio — **não** é gasto fixo nem item da estimativa variável.
 
-Por cartão (começar com **um cartão padrão** por usuário):
+Por cartão (um cartão padrão por usuário):
 
-- `closingDay` — dia de fechamento do ciclo (1–28)
-- `dueDay` — dia de vencimento (1–28)
-- Ciclo: a compra na data `D` entra na fatura que fecha no **primeiro** `closingDay` ≥ `D`. O ciclo começa no dia seguinte ao fechamento anterior.
-- Vencimento: se `dueDay > closingDay`, no mês do fechamento; senão, no mês seguinte (ex.: fecha 25, vence 10).
-- Padrão do cartão único: fechamento 1, vencimento 10.
-
-Estados: `OPEN` → `CLOSED` → `PAID` (ou `PARTIAL` no futuro).
-
-No vencimento, o sistema materializa (ou atualiza) **um** lançamento de caixa na coluna Cartão, no valor da fatura, com `affectsBalance = true`.
+- `closingDay` / `dueDay` (1–28)
+- Ciclo: compra na data `D` entra na fatura que fecha no primeiro `closingDay` ≥ `D`
+- Vencimento: se `dueDay > closingDay`, no mês do fechamento; senão, no mês seguinte
+- Estados: `OPEN` → `CLOSED` → `PAID` (ou `PARTIAL` no futuro)
+- No vencimento: um lançamento de caixa na coluna Cartão com `affectsBalance = true`
 
 ---
 
-## 5. Relação com os outros módulos
+## 6. Relação com os módulos
 
-### Recorrentes
+### Recorrentes → receitas / gastos fixos
 
-Fábricas de lançamentos de **caixa** (Entradas, Saídas, Diários, Economias) num dia do mês.
+Fábricas de lançamentos de caixa num dia do mês. Na UI: separar **receitas fixas** e **gastos fixos**.
 
-Não geram compra no crédito como se fosse saída de caixa. Assinatura de cartão, no futuro, pode nascer como compromisso de Cartão no ciclo, não como Saída.
+### Estimativa de variáveis
 
-### Previsão de diário
+Soma mensal dos itens (`FixedMonthlyExpense`). Sem ÷ `dailyDivisor` na definição ativa (divisor/teto = **V3**).
 
-Orçamento **somente de Diários**.
+### Totais (definição V1)
 
-```
-teto_diário = Σ(gastos_mensais_de_diário) / divisor_dias
-```
+UI: sentença do mês (herói de **folga** + composição orçamentária), não grid de 4 KPI cards.
 
-Exemplos válidos na lista: mercado, combustível, lazer, delivery.  
-Aluguel, internet e fatura **não** entram nessa lista — são Saída ou Cartão.
+| Conceito | Fórmula |
+|----------|---------|
+| **Custo de vida** | Gastos fixos (recorrentes `EXPENSE` ativos no mês) + gastos variáveis (estimativa) |
+| **Folga** (`performance`) | Receitas fixas (recorrentes `INCOME` ativos no mês) − custo de vida |
+| **Economizado** | Economias / Entradas do ledger (lançamentos do mês) |
+| **Variáveis (estimativa)** | Soma de `FixedMonthlyExpense` |
 
-O nome interno `FixedMonthlyExpense` é legado: na UI é “gastos mensais” do teto de diário, não contas fixas.
+**Diário médio vs teto:** fora da definição ativa até **V3**.
 
-### Totais
-
-| KPI | Fórmula |
-|-----|---------|
-| **Custo de vida** | Saídas + Diários + **pagamentos de fatura** (não a soma das comprinhas ainda não vencidas) |
-| **Performance** | Entradas − custo de vida |
-| **Economizado** | Economias / Entradas |
-| **Diário médio** | Soma de Diários / dias com Diário, comparado ao teto |
+Movimentações em Totais continuam mostrando totais do **ledger** do mês (entradas/saídas realizadas), separado do custo de vida orçamentário.
 
 ### Horizonte
 
-Projeta caixa dia a dia:
-
-- Recorrentes de caixa no dia do mês
-- Lançamentos manuais futuros de caixa
-- **Pagamentos de fatura** no `dueDay`, com valor já conhecido (ciclo fechado) ou estimado (ciclo aberto: soma das compras já lançadas)
-
-Compras no cartão futuras não baixam o saldo projetado até o vencimento.
+Projeta caixa com recorrentes, lançamentos manuais de caixa e pagamentos de fatura no `dueDay`.
 
 ### Tags
 
-Refinam dentro da coluna. A coluna é o domínio; a tag é o rótulo (Alimentação, Moradia, …).
+Refinam dentro da coluna / do tipo de movimento. Coluna = caixa; tag = rótulo (Alimentação, Moradia, …).
 
 ---
 
-## 6. Convenção de implementação
-
-Cada `Transaction` precisa de um impacto de caixa explícito, não só da coluna:
+## 7. Convenção de implementação (`affectsBalance`)
 
 | Coluna | Padrão `affectsBalance` |
 |--------|-------------------------|
-| Entradas, Saídas, Diários | `true` |
-| Economias | `true` (sinal `−` no running) |
+| Entradas, Saídas, `DAILY` | `true` |
+| Economias | `true` (sinal `−`) |
 | Cartão compra | `false` |
 | Cartão pagamento de fatura | `true` (sinal `−`) |
 
-A planilha continua agregando **todas** as linhas da coluna no valor da célula. O Saldo usa só linhas com `affectsBalance = true`, com o sinal da coluna (Entradas `+`, demais `−`).
-
 ---
 
-## 7. O que o código faz hoje (divergências)
+## 8. Mapeamento legado → produto v3
 
-Registrado para o plano de implementação; não é o comportamento alvo.
+| Código / docs antigos | Produto v3 |
+|-----------------------|------------|
+| Coluna `DAILY` / “Diários” | Legado de schema; fora da linguagem V1; na V2 = gasto do dia via pagamento na conta |
+| Previsão de diário + `dailyDivisor` + teto | **Deprecated** na definição; só V3 |
+| `FixedMonthlyExpense` | **Gastos variáveis (estimativa)** |
+| `RecurringTransaction` EXPENSE | **Gastos fixos** |
+| `RecurringTransaction` INCOME | **Receitas fixas** |
+| KPI “Diário médio vs teto” | Removido da definição ativa até V3 |
+| Custo de vida = saídas + diários + faturas | Alvo V1 = fixos + estimativa variável |
 
-1. ~~**Saldo trata Cartão como caixa no dia da compra**~~ — Fase 3: compra `affectsBalance=false`; pagamento no `dueDay`.
-2. ~~**Economias somam no saldo**~~ — corrigido na Fase 1 (`cashDelta("SAVINGS")` é `−amount`).
-3. ~~**Totais** incluem todas as linhas `CARD` no custo de vida~~ — Fase 3: só pagamentos (`affectsBalance`).
-4. ~~**Não existe** cartão, ciclo, fechamento, vencimento nem fatura.~~ — Fases 2–3: conta, fatura e pagamento no vencimento.
-5. **`PRODUTO.md`** descrevia Diários como “gastos fixos” — copy alinhada na Fase 4.
-6. ~~**Previsão de diário** está modelada como `FixedMonthlyExpense`~~ — UI já trata como orçamento de Diários; rename da tabela fica fora de escopo.
-
-Este documento prevalece sobre a seção 4 antiga do produto quando houver conflito.
+Este documento prevalece sobre seções antigas de produto quando houver conflito.

@@ -1,10 +1,10 @@
 # Pé-de-meia — Documento de Produto
 
-> Controle de caixa pessoal inspirado em planilha financeira diária, com visão operacional (saldos), analítica (totais), estratégica (horizonte) e SaaS.
+> Controle de caixa e orçamento pessoal: receitas/gastos fixos + estimativa de variáveis (custo de vida), com planilha de saldos e projeção. Registros do dia com método de pagamento vêm na fase seguinte.
 
-**Versão:** 1.0  
+**Versão:** 3.0 (simplificado)  
 **Data:** agosto/2026  
-**Branch de referência:** `cursor/design-system`
+**Domínio canônico:** [`DOMINIO.md`](./DOMINIO.md)
 
 ---
 
@@ -14,488 +14,221 @@
 
 Pessoas que controlam finanças no dia a dia precisam responder, rapidamente:
 
-- Quanto tenho **hoje**?
-- Quanto posso gastar **por dia** este mês?
-- Vou ficar **no vermelho** nos próximos meses?
-- Onde foi meu dinheiro (**entradas vs saídas vs cartão vs economias**)?
+- Quanto comprometi e estimei este mês (**custo de vida**)?
+- Com minhas **receitas fixas**, sobra quanto (**folga**)?
+- Quanto tenho **hoje** na conta? (quando houver lançamentos / planilha)
+- Vou ficar **no vermelho** nos próximos meses? (Horizonte)
 
-Planilhas funcionam, mas são manuais. Calendários genéricos mostram eventos, mas não **saldo acumulado** nem **KPIs mensais**.
+### 1.2 Proposta (V1)
 
-### 1.2 Proposta
+**Pé-de-meia** começa simples:
 
-**Pé-de-meia** é um app web de finanças pessoais centrado em:
+1. **Receitas fixas** — o que entra todo mês.
+2. **Gastos fixos** — contas que se repetem.
+3. **Gastos variáveis (estimativa)** — quanto se espera gastar no variável do mês (meta, não lançamento).
+4. **Custo de vida** = fixos + variáveis estimados; **folga** ≈ receitas fixas − custo de vida.
 
-1. **Planilha diária (Saldos)** — uma linha por dia, colunas por tipo de movimento, saldo running com heatmap.
-2. **Dashboard mensal (Totais)** — performance, economia, custo de vida, diário médio.
-3. **Projeção (Horizonte)** — saldo projetado dia a dia por vários meses.
-4. **Previsão de diário** — teto diário a partir do orçamento de gastos variáveis (coluna Diários).
+Em paralelo (já no app, alinhados ao caixa):
 
-O **calendário** permanece como visão alternativa (já implementado).
+- **Saldos** — planilha diária com saldo running.
+- **Totais** — visão do mês (evoluir KPIs para o custo de vida V1).
+- **Horizonte** — saldo projetado multi-mês.
 
-### 1.3 Inspiração (referência visual)
+**Fora do V1 (produto):** nomenclatura **Diário**, **teto diário**, KPI “diário médio vs teto”. Ver fases abaixo.
 
-| Módulo | Função |
-|--------|--------|
-| **Saldos** | Planilha do mês: dia × colunas (entradas, saídas, diários, economias, cartão) + saldo acumulado |
-| **Totais** | KPIs do mês + movimentações agregadas |
-| **Horizonte** | Heatmap multi-mês de saldo projetado |
-| **Previsão de diário** | Gastos fixos ÷ N dias = teto diário |
-| **Tags** | Categorias dentro de cada coluna |
-| **Menu** | Perfil, assinatura, configurações, ajuda, legal |
+### 1.3 Princípios
 
-### 1.4 Princípios de produto
-
-- **Saldo acumulado** é a métrica central (não só receita − despesa do dia).
-- **Colunas contábeis fixas** na visão principal; tags/categorias refinam dentro delas.
-- **Densidade informacional** — muitos dados na tela, cor como sinal (verde/vermelho/amarelo).
-- **Zeros apagados** — R$ 0,00 não compete visualmente com valores reais.
-- **Drill-down natural** — linha da planilha → drawer do dia → editar/apagar (com confirmação).
-- **Contagem de cliques** serve para **diagnosticar atrito**, não para cortar passos à custa de clareza ou segurança.
+- **Custo de vida entendível** sem exigir lançar cada café.
+- **Estimativa antes da disciplina diária** — ordem de maturidade.
+- **Saldo acumulado** é a métrica de caixa (quando houver movimentos).
+- **Um lançamento = um destino de caixa** (V2+: método de pagamento decide; nunca duas colunas).
+- **Densidade informacional** na planilha; zeros discretos; confirmação antes de apagar.
 
 ---
 
-## 2. Estado atual vs alvo
+## 2. Fases de produto
 
-| Capacidade | Hoje | Alvo |
-|------------|------|------|
-| Calendário mês/semana | ✅ | ✅ (visão alternativa) |
-| CRUD de lançamentos | ✅ | ✅ |
-| Categorias customizáveis | ✅ | ✅ (como tags) |
-| Orçamento mensal por categoria | ✅ | ✅ |
-| Recorrentes | ✅ | ✅ (alimentam planilha + horizonte) |
-| Auth (email/senha) | ✅ | ✅ |
-| Design system (verde-azulado) | ✅ | ✅ |
-| **Planilha Saldos** | ❌ | ✅ Fase A |
-| **Saldo running + heatmap** | ❌ | ✅ Fase A |
-| **Colunas fixas (D/E/C)** | ❌ | ✅ Fase B |
-| **Tela Totais (KPIs)** | ❌ | ✅ Fase C |
-| **Previsão de diário** | ❌ | ✅ Fase D |
-| **Horizonte multi-mês** | ❌ | ✅ Fase E |
-| Day sheet: navegação entre dias | ❌ | ✅ Fase A |
-| Day sheet: filtro por tipo | ❌ | ✅ Fase A |
-| Perfil + assinatura SaaS | ❌ | ✅ Fase F |
-| Menu / ajuda / legal | ❌ | ✅ Fase F |
+| Fase | Status | Conteúdo |
+|------|--------|----------|
+| **V1** | Definição ativa | Receitas fixas, gastos fixos, gastos variáveis (estimativa) → custo de vida / folga |
+| **V2** | Próxima | Registros do dia com método de pagamento (conta/PIX/débito vs cartão); comparar realizado vs estimativa (leve); sem chamar de Diário; sem teto |
+| **V3** | Futuro | Opcional: coluna/nomenclatura Diário + teto (estimativa ÷ N dias) |
+
+```text
+V1 (fixos + estimativa) → V2 (registros + pagamento) → V3 (Diário/teto opcional)
+```
+
+### 2.1 Estado do app vs definição
+
+| Capacidade | Código hoje | Definição V1 |
+|------------|-------------|--------------|
+| Auth, tags, recorrentes | ✅ | ✅ Receitas/gastos fixos |
+| Lista `FixedMonthlyExpense` | ✅ (UI **Variáveis (estimativa)**) | ✅ Gastos variáveis (estimativa) — sem teto |
+| Saldos / Totais / Horizonte | ✅ | ✅ Manter; alinhar copy/KPIs ao custo de vida V1 |
+| Coluna `DAILY` / teto / divisor | ✅ legado | ❌ Fora da linguagem ativa até V3 |
+| Calendário | ✅ (secundário) | Visão alternativa |
+| Billing Stripe | ❌ | Fora de escopo |
 
 ---
 
-## 3. Arquitetura de informação
-
-### 3.1 Navegação alvo
+## 3. Arquitetura de informação (V1)
 
 ```
-AppShell (sidebar compacta)
-├── /saldos          ← tela principal (default após login)
-├── /totais          ← dashboard do mês
-├── /horizonte       ← projeção multi-mês
-├── /tags            ← categorias (renomear /categories)
-├── /calendario      ← visão calendário (existente)
-├── /recorrentes     ← recorrentes (existente)
-├── +                ← novo lançamento (FAB ou header)
-├── ir pra hoje      ← atalho global
-└── /menu            ← perfil, previsão diário, config, legal
-    ├── /menu/previsao-diario
-    ├── /menu/perfil
-    └── /menu/configuracoes
+AppShell
+├── /totais              ← home pós-login (custo de vida / folga)
+├── /saldos              ← planilha de caixa
+├── /horizonte           ← projeção
+├── /gastos-fixos       ← Compromissos (fixos + estimativa de variáveis)
+├── /tags
+├── /calendario          ← visão alternativa
+└── /menu                ← perfil, cartão, config
 ```
 
-### 3.2 Fluxo de dados entre módulos
+Fluxo mental:
 
-```
-Previsão de diário ──► Totais (card "Diário médio" = teto R$ X)
+```text
+Receitas fixas ──┐
+Gastos fixos ────┼──► Custo de vida / Folga (Totais)
+Variáveis (est.)─┘
        │
-       ▼
-Recorrentes ──► Saldos (lançamentos automáticos por dia)
-       │
-       ▼
-Transações manuais ──► Saldos ──► Totais (KPIs)
-                         │
-                         ▼
-                    Horizonte (saldo projetado)
+Recorrentes materializam ──► Saldos ──► Horizonte
 ```
 
 ---
 
 ## 4. Modelo de domínio
 
-A definição canônica das colunas, do caixa e da fatura está em [`DOMINIO.md`](./DOMINIO.md). O plano de código está em [`PLANO-DOMINIO.md`](./PLANO-DOMINIO.md).
+Canônico em [`DOMINIO.md`](./DOMINIO.md). Resumo V1:
 
-Resumo (alvo):
-
-| Código | Nome | Papel | Caixa |
-|--------|------|-------|-------|
-| `INCOME` | Entradas | Ganho que entra na conta | `+` |
-| `EXPENSE` | Saídas | Contas/compromissos pagos da conta | `−` no pagamento |
-| `DAILY` | Diários | Consumo variável à vista | `−` no dia |
-| `SAVINGS` | Economias | Transferência para reserva | `−` no caixa |
-| `CARD` | Cartão | Compra no crédito; fatura no vencimento | compra não; pagamento sim |
-
-### 4.1 Saldo running (alvo)
-
-```
-saldo[d] = saldo[d-1]
-         + entradas[d]
-         − saídas[d]
-         − diários[d]
-         − pagamentos_de_fatura[d]
-         − economias[d]
+```text
+custo_de_vida ≈ Σ gastos_fixos + Σ gastos_variáveis(estimativa)
+folga         ≈ Σ receitas_fixas − custo_de_vida
 ```
 
-**Saldo inicial:** `openingBalance` do usuário.
+### V2 — Registros do dia (definido, ainda não é o foco da UI)
 
-### 4.2 KPIs (Totais)
+- Registrar gastos como aconteceram.
+- Perguntar **como pagou?** (conta → afeta saldo hoje; cartão → fatura).
+- Tag descreve o que foi.
+- Estimativa **não** auto-lança.
+- Sem nomenclatura Diário; sem teto.
 
-| KPI | Fórmula | Status textual |
-|-----|---------|----------------|
-| **Performance** | `entradas_mês − custo_de_vida` | "sobrou dinheiro" / "no vermelho" |
-| **Economizado** | `economias_mês / entradas_mês × 100` | "nada guardado" / "X% guardado" |
-| **Custo de vida** | `saídas + diários + faturas pagas` | "dentro da renda" / "acima da renda" |
-| **Diário médio** | `gasto_diários_mês / dias_com_gasto` vs teto da Previsão | compara com R$ X/dia previsto |
+### V3 — Diário + teto (só quando maduro)
 
-### 4.3 Previsão de diário
-
-Orçamento **somente de Diários** (não contas fixas nem fatura):
-
-```
-teto_diário = Σ(gastos_mensais_de_diário) / divisor_dias
+```text
+teto_diário = Σ(estimativa_variáveis) / divisor_dias
 ```
 
-- Lista editável (Mercado, Combustível, lazer…).
-- `divisor_dias`: padrão 30, configurável.
-
-### 4.4 Horizonte
-
-Para cada dia futuro `d` em `[hoje .. hoje + N meses]`:
-
-```
-saldo_projetado[d] = saldo_projetado[d-1]
-                   + recorrentes_de_caixa[d]
-                   + lançamentos_manuais_de_caixa[d]
-                   + pagamentos_de_fatura[d]
-```
-
-Heatmap: vermelho (negativo) → amarelo (baixo) → verde (saudável). Thresholds configuráveis por usuário (Fase E).
+Não prometer até lá.
 
 ---
 
-## 5. Schema Prisma (evolução proposta)
+## 5. Mapeamento código ↔ produto
 
-### 5.1 Schema atual (resumo)
+| Código | Produto v3 |
+|--------|------------|
+| `RecurringTransaction` INCOME | Receitas fixas |
+| `RecurringTransaction` EXPENSE | Gastos fixos |
+| `FixedMonthlyExpense` | Gastos variáveis (estimativa) |
+| `dailyDivisor` / teto / “Diário médio” | Deprecated na definição até V3 |
+| `LedgerColumn.DAILY` | Legado; UI não deve empurrar “Diário” como conceito central |
+| `CARD` + fatura | Forte na V2 |
 
-- `User`, `Category`, `Transaction`, `CategoryBudget`, `RecurringTransaction`
-- `TransactionType`: `INCOME` | `EXPENSE`
-
-### 5.2 Alterações propostas
-
-```prisma
-enum LedgerColumn {
-  INCOME    // entradas
-  EXPENSE   // saídas
-  DAILY     // diários
-  SAVINGS   // economias
-  CARD      // cartão
-}
-
-enum SubscriptionStatus {
-  ACTIVE
-  TRIAL
-  CANCELLED
-  EXPIRED
-}
-
-// Category — adicionar
-model Category {
-  // ... campos existentes
-  ledgerColumn LedgerColumn @default(EXPENSE) // ou INCOME conforme type
-}
-
-// User — adicionar
-model User {
-  // ... campos existentes
-  openingBalance    Decimal  @default(0) @db.Decimal(12, 2)
-  subscriptionStatus SubscriptionStatus @default(TRIAL)
-  subscriptionEndsAt DateTime?
-  dailyDivisor      Int      @default(30)  // dias para previsão de diário
-}
-
-// Novo: gastos fixos para previsão de diário
-model FixedMonthlyExpense {
-  id        String   @id @default(cuid())
-  userId    String
-  name      String
-  amount    Decimal  @db.Decimal(12, 2)
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([userId])
-}
-
-// Transaction — adicionar (opcional, Fase B)
-model Transaction {
-  // ... campos existentes
-  ledgerColumn LedgerColumn? // override; se null, herda da Category
-}
-```
-
-### 5.3 Índices recomendados
-
-```prisma
-@@index([userId, date, ledgerColumn])  // agregações por coluna/dia
-```
+Detalhe completo: [`DOMINIO.md`](./DOMINIO.md) §8 e [`MAPEAMENTO-LEGADO.md`](./MAPEAMENTO-LEGADO.md).
 
 ---
 
-## 6. Rotas e páginas
+## 6. Rotas (referência)
 
-### 6.1 App Router (Next.js)
+| Rota | Papel V1 |
+|------|----------|
+| `/totais` | Home — custo de vida / folga |
+| `/saldos` | Planilha de caixa |
+| `/gastos-fixos` | Compromissos: fixos + estimativa variáveis |
+| `/gastos-fixos/orcamento-diario` | Rota legada → UI de **estimativa de variáveis** (renome de path depois) |
+| `/horizonte` | Projeção |
+| `/tags`, `/menu/*`, `/calendario` | Apoio |
+| `/comecar` | Onboarding (saldo, fixos, estimativa, cartão) |
 
-| Rota | Página | Prioridade |
-|------|--------|------------|
-| `/saldos` | Planilha mensal + day drawer | A |
-| `/saldos?year=2026&month=9` | Mês específico | A |
-| `/totais` | Dashboard KPIs | C |
-| `/horizonte` | Heatmap multi-mês | E |
-| `/tags` | CRUD categorias (move de `/categories`) | B |
-| `/calendario` | Calendário (move de `/calendar`) | — |
-| `/recorrentes` | Recorrentes | — |
-| `/menu` | Hub perfil/config | F |
-| `/menu/previsao-diario` | Calculadora teto diário | D |
-| `/menu/perfil` | Editar perfil | F |
-| `/menu/configuracoes` | Saldo inicial, divisor, thresholds | F |
-| `/login`, `/register` | Auth | — |
-
-**Redirect pós-login:** `/saldos` (substituir `/calendar` como home).
-
-### 6.2 API / Server Actions (novas)
-
-| Action | Responsabilidade |
-|--------|------------------|
-| `fetchLedgerMonthAction(year, month)` | Linhas dia a dia + totais por coluna + saldo running |
-| `fetchMonthTotalsAction(year, month)` | KPIs + movimentações |
-| `fetchHorizonAction(startDate, months)` | Matriz saldo projetado |
-| `fetchFixedExpensesAction` | Lista previsão diário |
-| `upsertFixedExpenseAction` | CRUD gasto fixo |
-| `updateUserSettingsAction` | openingBalance, dailyDivisor |
-| `fetchDayTransactionsAction` | ✅ já existe — estender com filtro por `ledgerColumn` |
+**Redirect pós-login:** `/totais`.
 
 ---
 
-## 7. Épicos e user stories
+## 7. Épicos (priorização atual)
 
-### Épico A — Planilha Saldos (MVP da inspiração)
+### Épico V1 — Vocabulário e custo de vida
 
-**Objetivo:** Tela principal operacional; substituir calendário como home.
+| ID | Objetivo |
+|----|----------|
+| V1.1 | Copy/nav: receitas fixas, gastos fixos, gastos variáveis (estimativa) |
+| V1.2 | Remover teto/Diário da narrativa (docs + UI copy) |
+| V1.3 | Totais: custo de vida / folga = fixos + estimativa (feito) |
 
-| ID | User story | Critérios de aceite |
-|----|------------|---------------------|
-| A1 | Como usuário, quero ver uma planilha do mês com uma linha por dia | Colunas: dia, entradas, saídas, saldo; navegação `<` `>` entre meses |
-| A2 | Como usuário, quero ver meu saldo acumulado por dia | Coluna saldo recalculada; heatmap amarelo/vermelho |
-| A3 | Como usuário, quero clicar num dia e ver lançamentos | Drawer lateral; lista com ícone, nome, valor |
-| A4 | Como usuário, quero navegar entre dias no drawer | Setas `<` `>` no header; data no centro |
-| A5 | Como usuário, quero filtrar lançamentos por tipo no drawer | Campo filtro (entradas, saídas, …) |
-| A6 | Como usuário, quero editar/apagar com segurança | ⋯ → editar (dialog) / apagar (confirmação) |
-| A7 | Como usuário, quero ver totais no rodapé da planilha | Linha total por coluna |
-| A8 | Como usuário, quero que zeros fiquem discretos | R$ 0,00 em muted; ícones acinzentados |
+### Épico V2 — Registros do dia
 
-**Componentes:** `LedgerTable`, `LedgerDaySheet`, `BalanceCell` (heatmap).
+| ID | Objetivo |
+|----|----------|
+| V2.1 | Formulário pay-first (conta vs cartão) |
+| V2.2 | Um lançamento = uma coluna; helper de fatura |
+| V2.3 | Comparar realizado vs estimativa (opcional, leve) |
 
----
+### Épico V3 — Diário + teto
 
-### Épico B — Colunas contábeis (D / E / C)
+Só após V1/V2 estáveis.
 
-**Objetivo:** Planilha fiel à inspiração.
+### Já entregues (manutenção)
 
-| ID | User story | Critérios de aceite |
-|----|------------|---------------------|
-| B1 | Como usuário, quero colunas diários, economias e cartão na planilha | Colunas extras na tabela |
-| B2 | Como usuário, quero associar categorias a uma coluna contábil | Campo `ledgerColumn` em tags |
-| B3 | Como usuário, quero definir saldo inicial do mês | Config em `/menu/configuracoes` ou inline |
-
----
-
-### Épico C — Totais (dashboard mensal)
-
-**Objetivo:** Resposta analítica rápida.
-
-| ID | User story | Critérios de aceite |
-|----|------------|---------------------|
-| C1 | Como usuário, quero ver Performance do mês | Card com valor + status textual |
-| C2 | Como usuário, quero ver % economizado | Card com barra de progresso |
-| C3 | Como usuário, quero ver Custo de vida | Card com valor + status |
-| C4 | Como usuário, quero ver Diário médio vs teto | Card comparando real vs previsão |
-| C5 | Como usuário, quero ver entradas e saídas totais | Seção movimentações |
-
-**Componentes:** `TotalsDashboard`, `KpiCard`.
-
----
-
-### Épico D — Previsão de diário
-
-**Objetivo:** Calcular teto diário a partir do orçamento de gastos variáveis (Diários).
-
-| ID | User story | Critérios de aceite |
-|----|------------|---------------------|
-| D1 | Como usuário, quero listar itens do orçamento mensal de diários | CRUD com nome + valor |
-| D2 | Como usuário, quero dividir por N dias | Dropdown (28/30/31/custom) |
-| D3 | Como usuário, quero ver o teto diário calculado | Destaque R$ X/dia |
-| D4 | Como usuário, quero que o teto alimente Totais | Card Diário médio referencia teto |
-
----
-
-### Épico E — Horizonte de saldos
-
-**Objetivo:** Projeção visual multi-mês.
-
-| ID | User story | Critérios de aceite |
-|----|------------|---------------------|
-| E1 | Como usuário, quero ver saldo projetado por dia em vários meses | Grid dia × mês |
-| E2 | Como usuário, quero heatmap vermelho/amarelo/verde | Cores por faixa de saldo |
-| E3 | Como usuário, quero que recorrentes alimentem a projeção | Auto-aplicar recorrentes futuros |
-| E4 | Como usuário, quero configurar saldo inicial para projeção | Herda openingBalance |
-
----
-
-### Épico F — Conta, SaaS e menu
-
-**Objetivo:** Produto comercializável.
-
-| ID | User story | Critérios de aceite |
-|----|------------|---------------------|
-| F1 | Como usuário, quero editar meu perfil | Nome, e-mail |
-| F2 | Como usuário, quero ver status da assinatura | Badge "assinatura ativa" / trial |
-| F3 | Como usuário, quero acessar termos e privacidade | Links estáticos |
-| F4 | Como usuário, quero enviar sugestões | Form ou mailto |
-| F5 | Como usuário, quero menu lateral unificado | Sidebar com ícones |
-
----
-
-### Épico G — Calendário (manutenção)
-
-**Objetivo:** Manter visão alternativa; não é foco da inspiração.
-
-| ID | User story | Status |
-|----|------------|--------|
-| G1 | Calendário mês/semana com totais diários | ✅ |
-| G2 | CRUD via day sheet | ✅ |
-| G3 | Recorrentes + orçamentos | ✅ |
+Saldos, colunas de ledger, cartão/fatura, Horizonte, tags, auth, onboarding base — ver histórico em git / `PLANO-DOMINIO.md`.
 
 ---
 
 ## 8. Design e UX
 
-### 8.1 Identidade visual (decidido)
-
-- **Primária:** verde-azulado (`oklch(0.52 0.11 175)`)
-- **Receita:** `--income`
-- **Despesa:** `--expense`
-- **Valores:** `tabular-nums`
-
-Ver `src/lib/design.ts` e `src/app/globals.css`.
-
-### 8.2 Padrões de interação (decidido)
-
-| Decisão | Escolha |
-|---------|---------|
-| Formulário de lançamento | Dialog focado (intuitivo) |
-| Exclusão | Confirmação antes de apagar (seguro) |
-| Cliques | Medir atrito, não minimizar à força |
-| Day sheet | Drawer sobre planilha (contexto preservado) |
-
-### 8.3 Heatmap de saldo (proposta)
-
-| Faixa | Cor | Exemplo |
-|-------|-----|---------|
-| Saldo < 0 | Vermelho intenso | −R$ 1.373 |
-| Saldo 0 – limiar baixo | Amarelo | R$ 200 |
-| Saldo > limiar | Verde / neutro | R$ 4.960 |
-
-Limiar configurável em `/menu/configuracoes` (Fase B/E).
-
-### 8.4 Sidebar
-
-- Ícones + labels colapsáveis
-- `+` sempre acessível
-- Indicador do módulo ativo (underline ou cor primária)
-- Mobile: bottom nav ou drawer
+- Primária: verde-azulado (`oklch(0.52 0.11 175)`) — `src/lib/design.ts`, `globals.css`
+- Formulário de lançamento: dialog; exclusão com confirmação
+- Day sheet: drawer sobre a planilha
+- Heatmap de saldo: vermelho / amarelo / verde (limiar configurável — polish)
 
 ---
 
-## 9. Roadmap de implementação
-
-| Fase | Épico | Entregável | Dependências |
-|------|-------|------------|--------------|
-| **A** | Planilha Saldos | `/saldos`, saldo running, day drawer melhorado | Design system ✅ |
-| **B** | Colunas D/E/C | Colunas extras + `ledgerColumn` em Category | A |
-| **C** | Totais | `/totais` com 4 KPIs | A |
-| **D** | Previsão diário | `/menu/previsao-diario` + `FixedMonthlyExpense` | — |
-| **E** | Horizonte | `/horizonte` heatmap | A, recorrentes ✅ |
-| **F** | SaaS / menu | `/menu`, assinatura, legal | — |
-| **G** | Polish | Sidebar, redirect home, E2E | A–F |
-
-### Ordem recomendada de desenvolvimento
-
-```
-A (Saldos) ──┬──► B (colunas)
-             ├──► C (Totais) ──► D (Previsão) integra em C
-             └──► E (Horizonte)
-
-D pode paralelizar com B/C
-F pode paralelizar após A
-```
-
-### Estimativa relativa
-
-| Fase | Complexidade | Motivo |
-|------|--------------|--------|
-| A | Alta | Nova tela principal + running balance |
-| B | Média | Migration + mapeamento categorias |
-| C | Média | Cálculos + cards |
-| D | Baixa | CRUD simples + fórmula |
-| E | Alta | Projeção + grid denso |
-| F | Média | SaaS billing fora de escopo v1 |
-
----
-
-## 10. Critérios de sucesso (produto)
+## 9. Critérios de sucesso (V1)
 
 | Métrica | Meta |
 |---------|------|
-| Responder "quanto tenho hoje?" | ≤ 2 cliques (abrir app → ver saldo de hoje) |
-| Registrar despesa no dia | ≤ 3 cliques (dia → adicionar → salvar) |
-| Ver performance do mês | ≤ 2 cliques (totais) |
-| Identificar mês no vermelho (horizonte) | ≤ 2 cliques (horizonte) |
-| Cobertura E2E fluxos críticos | Saldos + Totais + auth |
+| Entender custo de vida | ≤ 2 min no setup (fixos + estimativa) |
+| Ver folga vs receitas | ≤ 2 cliques (Totais) |
+| Responder “quanto tenho hoje?” | ≤ 2 cliques (Saldos) quando houver caixa configurado |
+| Não ver promessa de teto diário | Copy/onboarding sem ÷ dias |
 
 ---
 
-## 11. Fora de escopo (v1 deste documento)
+## 10. Fora de escopo
 
-- Billing / Stripe / gateway de pagamento
+- Billing / Stripe
 - App mobile nativo
 - Import CSV / Open Finance
-- Multi-moeda
-- Compartilhamento familiar / contas conjuntas
-- Dark mode (CSS preparado, toggle na Fase G)
+- Multi-moeda / contas conjuntas
+- Multi-cartão avançado, fatura parcial
+- Auto-lançar a partir da estimativa
+- Diário + teto (adiado à V3)
 
 ---
 
-## 12. Referências no repositório
+## 11. Referências
 
 | Recurso | Caminho |
 |---------|---------|
-| Schema atual | `prisma/schema.prisma` |
-| Design tokens | `src/app/globals.css`, `src/lib/design.ts` |
-| Calendário | `src/components/calendar/` |
-| Categorias | `src/components/categories/` |
-| Recorrentes | `src/components/recurring/` |
+| Domínio | `docs/DOMINIO.md` |
+| Mapeamento legado | `docs/MAPEAMENTO-LEGADO.md` |
+| Plano de implementação caixa/cartão | `docs/PLANO-DOMINIO.md` |
+| Schema | `prisma/schema.prisma` |
 | Copy pt-BR | `src/lib/copy.ts` |
-| E2E | `e2e/` |
 
 ---
 
-## Changelog deste documento
+## Changelog
 
 | Versão | Data | Notas |
 |--------|------|-------|
-| 1.0 | ago/2026 | Documento inicial a partir dos prints de inspiração + estado do app |
+| 1.0 | ago/2026 | Documento inicial (planilha + Diário/teto) |
+| 3.0 | ago/2026 | Modelo simplificado: fixos + estimativa variável; Diário/teto → V3; registros do dia → V2 |
