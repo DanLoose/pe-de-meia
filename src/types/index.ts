@@ -20,6 +20,8 @@ export interface TransactionDTO {
   categoryColor: string;
   recurringId: string | null;
   ledgerColumn: LedgerColumn;
+  affectsBalance: boolean;
+  cardInvoiceId: string | null;
 }
 
 export interface CategoryDTO {
@@ -158,6 +160,8 @@ export interface FixedExpenseDTO {
 export interface UserSettingsDTO {
   openingBalance: number;
   dailyDivisor: number;
+  cardClosingDay: number;
+  cardDueDay: number;
   subscriptionStatus: string;
   subscriptionEndsAt: string | null;
   name: string | null;

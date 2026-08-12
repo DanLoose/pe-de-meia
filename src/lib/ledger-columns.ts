@@ -1,4 +1,5 @@
 import type { LedgerColumn as PrismaLedgerColumn } from "@/generated/prisma/client";
+import { copy } from "@/lib/copy";
 import type { LedgerColumn } from "@/types";
 
 export function defaultLedgerColumnForType(
@@ -48,6 +49,16 @@ export const LEDGER_COLUMN_LABELS: Record<LedgerColumn, string> = {
   SAVINGS: "Economias",
   CARD: "Cartão",
 };
+
+export function ledgerColumnHint(column: LedgerColumn): string {
+  return copy.domain.columnHint[column];
+}
+
+export function cardEntryKindLabel(affectsBalance: boolean): string {
+  return affectsBalance
+    ? copy.domain.cardKind.payment
+    : copy.domain.cardKind.commitment;
+}
 
 export const DEFAULT_CATEGORY_LEDGER: Record<string, PrismaLedgerColumn> = {
   Salário: "INCOME",

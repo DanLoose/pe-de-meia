@@ -1,6 +1,9 @@
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
+import { defaultAffectsBalance } from "@/lib/cash";
 import { parseDateOnly } from "@/lib/dates";
+import { resolveLedgerColumn } from "@/lib/ledger-columns";
+import { resolveCardInvoiceId } from "@/lib/services/card";
 import {
   createRecurringSchema,
   deleteRecurringSchema,
@@ -152,6 +155,16 @@ export async function ensureRecurringTransactions(
         });
 
         if (!existing) {
+          const ledgerColumn = resolveLedgerColumn(
+            null,
+            rule.category.ledgerColumn,
+          );
+          const cardInvoiceId = await resolveCardInvoiceId(
+            userId,
+            ledgerColumn,
+            date,
+          );
+
           await prisma.transaction.create({
             data: {
               userId,
@@ -161,6 +174,9 @@ export async function ensureRecurringTransactions(
               description: rule.description,
               date,
               recurringId: rule.id,
+              ledgerColumn,
+              affectsBalance: defaultAffectsBalance(ledgerColumn),
+              cardInvoiceId,
             },
           });
         }

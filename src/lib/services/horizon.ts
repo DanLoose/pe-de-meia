@@ -1,7 +1,9 @@
 import { prisma } from "@/lib/db";
 import { formatDateOnly, parseDateOnly } from "@/lib/dates";
+import { cashDelta, defaultAffectsBalance } from "@/lib/cash";
 import { resolveLedgerColumn } from "@/lib/ledger-columns";
 import { ledgerRowHasActivity } from "@/lib/design";
+import { ensureCardInvoices } from "@/lib/services/card";
 import { getLedgerMonth, getUserOpeningBalance } from "@/lib/services/ledger";
 import { ensureRecurringTransactions } from "@/lib/services/recurring";
 import type {
@@ -34,19 +36,9 @@ function monthShortLabel(year: number, month: number): string {
 function netEffectForColumn(
   column: ReturnType<typeof resolveLedgerColumn>,
   amount: number,
+  affectsBalance = true,
 ): number {
-  switch (column) {
-    case "INCOME":
-      return amount;
-    case "SAVINGS":
-      return amount;
-    case "EXPENSE":
-    case "DAILY":
-    case "CARD":
-      return -amount;
-    default:
-      return 0;
-  }
+  return cashDelta(column, amount, affectsBalance);
 }
 
 async function getRecurringRules(userId: string) {
@@ -73,7 +65,11 @@ function projectedRecurringForDate(
     if (ruleDay !== day) continue;
 
     const column = resolveLedgerColumn(null, rule.category.ledgerColumn);
-    net += netEffectForColumn(column, Number(rule.amount));
+    net += netEffectForColumn(
+      column,
+      Number(rule.amount),
+      defaultAffectsBalance(column),
+    );
   }
 
   return net;
@@ -152,8 +148,10 @@ export async function getHorizon(
 ): Promise<HorizonData> {
   const today = startDate;
   const [year, month] = today.split("-").map(Number);
+  const endDate = addDays(today, months * 31);
 
-  await ensureRecurringTransactions(userId, today, addDays(today, months * 31));
+  await ensureRecurringTransactions(userId, today, endDate);
+  await ensureCardInvoices(userId, today, endDate);
 
   const ledger = await getLedgerMonth(userId, year, month);
   const todayRow = ledger.rows.find((row) => row.date === today);
@@ -172,12 +170,34 @@ export async function getHorizon(
     balance = Number(await getUserOpeningBalance(userId));
     for (const tx of pastTransactions) {
       const column = resolveLedgerColumn(tx.ledgerColumn, tx.category.ledgerColumn);
-      balance += netEffectForColumn(column, Number(tx.amount));
+      balance += netEffectForColumn(
+        column,
+        Number(tx.amount),
+        tx.affectsBalance,
+      );
     }
   }
 
   const rules = await getRecurringRules(userId);
-  const endDate = addDays(today, months * 31);
+
+  const futurePayments = await prisma.transaction.findMany({
+    where: {
+      userId,
+      date: { gt: parseDateOnly(today), lte: parseDateOnly(endDate) },
+      ledgerColumn: "CARD",
+      affectsBalance: true,
+    },
+  });
+
+  const paymentDeltaByDate = new Map<string, number>();
+  for (const tx of futurePayments) {
+    const dateStr = formatDateOnly(tx.date);
+    paymentDeltaByDate.set(
+      dateStr,
+      (paymentDeltaByDate.get(dateStr) ?? 0) +
+        cashDelta("CARD", Number(tx.amount), true),
+    );
+  }
 
   const balanceByDate = new Map<string, number>();
   let cursor = today;
@@ -186,6 +206,7 @@ export async function getHorizon(
   while (cursor <= endDate) {
     if (cursor > today) {
       running += projectedRecurringForDate(rules, cursor);
+      running += paymentDeltaByDate.get(cursor) ?? 0;
     }
     balanceByDate.set(cursor, running);
     cursor = addDays(cursor, 1);
@@ -238,7 +259,9 @@ export async function getHorizon(
         continue;
       }
 
-      const recurringDelta = projectedRecurringForDate(rules, dateStr);
+      const recurringDelta =
+        projectedRecurringForDate(rules, dateStr) +
+        (paymentDeltaByDate.get(dateStr) ?? 0);
       const pastRow = ledgerRowByDate.get(dateStr);
       const hasPastMovement = pastRow ? ledgerRowHasActivity(pastRow) : false;
       const prevBalance = previousBalance(dateStr);

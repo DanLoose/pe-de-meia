@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { formatDateOnly, getMonthDateRange } from "@/lib/dates";
 import { resolveLedgerColumn } from "@/lib/ledger-columns";
 import { getDailyCeiling } from "@/lib/services/fixed-expenses";
+import { ensureCardInvoices } from "@/lib/services/card";
 import { ensureRecurringTransactions } from "@/lib/services/recurring";
 import { monthQuerySchema } from "@/lib/validators/transaction";
 import type { MonthTotalsData } from "@/types";
@@ -17,6 +18,7 @@ export async function getMonthTotals(
   const endDate = formatDateOnly(end);
 
   await ensureRecurringTransactions(userId, startDate, endDate);
+  await ensureCardInvoices(userId, startDate, endDate);
 
   const transactions = await prisma.transaction.findMany({
     where: {
@@ -52,7 +54,9 @@ export async function getMonthTotals(
         totalSavings += amount;
         break;
       case "CARD":
-        totalCard += amount;
+        if (tx.affectsBalance) {
+          totalCard += amount;
+        }
         break;
     }
   }

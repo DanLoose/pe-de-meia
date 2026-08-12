@@ -1,8 +1,10 @@
 import { prisma } from "@/lib/db";
 import { formatDateOnly, getMonthDateRange } from "@/lib/dates";
+import { cashDelta } from "@/lib/cash";
 import {
   resolveLedgerColumn,
 } from "@/lib/ledger-columns";
+import { ensureCardInvoices } from "@/lib/services/card";
 import { ensureRecurringTransactions } from "@/lib/services/recurring";
 import { monthQuerySchema } from "@/lib/validators/transaction";
 import type { LedgerDayRow, LedgerMonthData } from "@/types";
@@ -31,6 +33,7 @@ export async function getLedgerMonth(
   const endDate = formatDateOnly(end);
 
   await ensureRecurringTransactions(userId, startDate, endDate);
+  await ensureCardInvoices(userId, startDate, endDate);
 
   const resolvedOpening =
     openingBalance ?? (await getUserOpeningBalance(userId));
@@ -89,18 +92,19 @@ export async function getLedgerMonth(
           break;
         case "CARD":
           card += amount;
+          if (!tx.affectsBalance) {
+            totals.card += amount;
+          }
           break;
       }
-    }
 
-    runningBalance =
-      runningBalance + income - expense - daily - card + savings;
+      runningBalance += cashDelta(column, amount, tx.affectsBalance);
+    }
 
     totals.income += income;
     totals.expense += expense;
     totals.daily += daily;
     totals.savings += savings;
-    totals.card += card;
 
     rows.push({
       date: dateStr,

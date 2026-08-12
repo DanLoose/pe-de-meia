@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil, Plus, Trash2 } from "lucide-react";
+import { EllipsisVertical, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import {
   deleteFixedExpenseAction,
@@ -8,7 +8,6 @@ import {
   upsertFixedExpenseAction,
 } from "@/app/actions/fixed-expenses";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -16,8 +15,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MoneyInput } from "@/components/ui/money-input";
 import {
   Select,
   SelectContent,
@@ -40,20 +46,20 @@ export function DailyForecastManager({ initialData }: DailyForecastManagerProps)
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<FixedExpenseDTO | null>(null);
   const [name, setName] = useState("");
-  const [amount, setAmount] = useState("");
+  const [amount, setAmount] = useState(0);
   const [isPending, startTransition] = useTransition();
 
   const openCreate = () => {
     setEditing(null);
     setName("");
-    setAmount("");
+    setAmount(0);
     setFormOpen(true);
   };
 
   const openEdit = (expense: FixedExpenseDTO) => {
     setEditing(expense);
     setName(expense.name);
-    setAmount(String(expense.amount));
+    setAmount(expense.amount);
     setFormOpen(true);
   };
 
@@ -62,7 +68,7 @@ export function DailyForecastManager({ initialData }: DailyForecastManagerProps)
       const result = await upsertFixedExpenseAction({
         id: editing?.id,
         name,
-        amount: Number(amount),
+        amount,
       });
       if (!result.success || !result.data) {
         appToast.error(result.error ?? copy.toast.genericError);
@@ -126,84 +132,113 @@ export function DailyForecastManager({ initialData }: DailyForecastManagerProps)
   };
 
   return (
-    <div className="space-y-6">
-      <Card className="border-primary/20 bg-primary/5">
-        <CardHeader>
-          <CardTitle>{copy.forecast.dailyCeiling}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-3xl font-semibold tabular-nums text-primary">
-            {formatCurrency(data.dailyCeiling)}/dia
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {formatCurrency(data.totalFixed)} ÷ {data.dailyDivisor} dias
-          </p>
-        </CardContent>
-      </Card>
+    <div className="w-full space-y-6">
+      <p className="text-sm text-muted-foreground">{copy.forecast.intro}</p>
 
-      <div className="flex flex-wrap items-end gap-4">
-        <div className="space-y-2">
-          <Label>{copy.forecast.divisorDays}</Label>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-sm font-medium lowercase text-muted-foreground">
+          {copy.forecast.monthlyExpenses}
+        </h2>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8"
+          aria-label={copy.forecast.addExpense}
+          onClick={openCreate}
+        >
+          <Plus className="size-4" />
+        </Button>
+      </div>
+
+      <div className="overflow-hidden rounded-xl border bg-card">
+        {data.expenses.length === 0 ? (
+          <p className="px-4 py-6 text-sm text-muted-foreground">
+            {copy.forecast.empty}
+          </p>
+        ) : (
+          <div className="divide-y">
+            {data.expenses.map((expense) => (
+              <div
+                key={expense.id}
+                className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/50"
+              >
+                <p className="min-w-0 flex-1 truncate">{expense.name}</p>
+                <p className="shrink-0 tabular-nums">
+                  {formatCurrency(expense.amount)}
+                </p>
+                <DropdownMenu>
+                  <DropdownMenuTrigger
+                    render={
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="size-8"
+                        aria-label={copy.forecast.rowMenu}
+                      />
+                    }
+                  >
+                    <EllipsisVertical className="size-4" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem onClick={() => openEdit(expense)}>
+                      <Pencil />
+                      {copy.forecast.edit}
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      variant="destructive"
+                      onClick={() => handleDelete(expense.id)}
+                      disabled={isPending}
+                    >
+                      <Trash2 />
+                      {copy.forecast.delete}
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="space-y-3 border-t pt-4">
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <span className="lowercase text-muted-foreground">
+            {copy.forecast.monthlyTotal}
+          </span>
+          <span className="tabular-nums">{formatCurrency(data.totalFixed)}</span>
+        </div>
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <span className="lowercase text-muted-foreground">
+            {copy.forecast.dividedBy}
+          </span>
           <Select
             value={String(data.dailyDivisor)}
             onValueChange={(value) => {
               if (value) handleDivisorChange(value);
             }}
           >
-            <SelectTrigger className="w-[120px]">
-              <span>{data.dailyDivisor} dias</span>
+            <SelectTrigger className="h-8 w-auto rounded-full px-3">
+              <span>{copy.forecast.days(data.dailyDivisor)}</span>
             </SelectTrigger>
             <SelectContent>
               {DIVISOR_OPTIONS.map((option) => (
                 <SelectItem key={option} value={String(option)}>
-                  {option} dias
+                  {copy.forecast.days(option)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
-        <Button onClick={openCreate}>
-          <Plus className="size-4" />
-          {copy.forecast.addExpense}
-        </Button>
-      </div>
-
-      <div className="space-y-2">
-        {data.expenses.length === 0 && (
-          <p className="text-sm text-muted-foreground">{copy.forecast.empty}</p>
-        )}
-        {data.expenses.map((expense) => (
-          <div
-            key={expense.id}
-            className="flex items-center justify-between rounded-lg border p-3"
-          >
-            <div>
-              <p className="font-medium">{expense.name}</p>
-              <p className="text-sm text-muted-foreground">
-                {formatCurrency(expense.amount)}/mês
-              </p>
-            </div>
-            <div className="flex gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={copy.forecast.edit}
-                onClick={() => openEdit(expense)}
-              >
-                <Pencil className="size-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={copy.forecast.delete}
-                onClick={() => handleDelete(expense.id)}
-                disabled={isPending}
-              >
-                <Trash2 className="size-4" />
-              </Button>
-            </div>
+        <div className="flex items-center justify-end border-t pt-4">
+          <div className="text-right">
+            <p className="text-xs lowercase text-muted-foreground">
+              {copy.forecast.dailyCeiling}
+            </p>
+            <p className="text-2xl font-semibold tabular-nums">
+              {formatCurrency(data.dailyCeiling)}
+            </p>
           </div>
-        ))}
+        </div>
       </div>
 
       <Dialog open={formOpen} onOpenChange={setFormOpen}>
@@ -220,25 +255,29 @@ export function DailyForecastManager({ initialData }: DailyForecastManagerProps)
                 id="expense-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                placeholder={copy.forecast.examples}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="expense-amount">{copy.forecast.amount}</Label>
-              <Input
+              <MoneyInput
                 id="expense-amount"
-                type="number"
-                step="0.01"
-                min="0"
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onValueChange={setAmount}
               />
+              <p className="text-xs text-muted-foreground">
+                {copy.forecast.amountHint}
+              </p>
             </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setFormOpen(false)}>
               {copy.entry.cancel}
             </Button>
-            <Button onClick={handleSave} disabled={isPending}>
+            <Button
+              onClick={handleSave}
+              disabled={isPending || !name.trim() || amount <= 0}
+            >
               {editing ? copy.entry.update : copy.entry.create}
             </Button>
           </DialogFooter>

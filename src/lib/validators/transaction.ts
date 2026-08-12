@@ -18,6 +18,7 @@ export const createTransactionSchema = z.object({
   categoryId: z.string().min(1, "Category is required"),
   recurring: z.boolean().optional(),
   ledgerColumn: ledgerColumnSchema.optional(),
+  installmentCount: z.coerce.number().int().min(1).max(12).optional(),
 });
 
 export const updateTransactionSchema = createTransactionSchema.extend({

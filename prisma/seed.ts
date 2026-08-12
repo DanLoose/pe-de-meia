@@ -5,6 +5,7 @@ import {
   DEFAULT_CATEGORIES,
   LEGACY_CATEGORY_NAME_MAP,
 } from "../src/lib/default-categories";
+import { DEFAULT_CARD_CLOSING_DAY, DEFAULT_CARD_DUE_DAY } from "../src/lib/card-cycle";
 
 const prisma = createPrismaClient();
 
@@ -19,6 +20,16 @@ async function main() {
       email,
       name: "Demo User",
       passwordHash,
+    },
+  });
+
+  await prisma.cardAccount.upsert({
+    where: { userId: user.id },
+    update: {},
+    create: {
+      userId: user.id,
+      closingDay: DEFAULT_CARD_CLOSING_DAY,
+      dueDay: DEFAULT_CARD_DUE_DAY,
     },
   });
 
@@ -44,10 +55,15 @@ async function main() {
     }
 
     for (const category of DEFAULT_CATEGORIES) {
-      await prisma.category.updateMany({
+      const updated = await prisma.category.updateMany({
         where: { userId: user.id, name: category.name, type: category.type },
         data: { ledgerColumn: category.ledgerColumn },
       });
+      if (updated.count === 0) {
+        await prisma.category.create({
+          data: { ...category, userId: user.id },
+        });
+      }
     }
   }
 

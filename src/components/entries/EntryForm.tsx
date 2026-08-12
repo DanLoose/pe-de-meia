@@ -4,6 +4,7 @@ import { useMemo, useState, useTransition } from "react";
 import {
   Calendar,
   CalendarSync,
+  Layers,
   Pencil,
   Tag,
   Wallet,
@@ -33,6 +34,7 @@ import {
   defaultTypeForLedgerColumn,
   LEDGER_COLUMN_LABELS,
   LEDGER_COLUMNS,
+  ledgerColumnHint,
   ledgerColumnVariant,
 } from "@/lib/ledger-columns";
 import { appToast } from "@/lib/toast";
@@ -127,6 +129,7 @@ function EntryFormFields({
   const [entryDate, setEntryDate] = useState(transaction?.date ?? date ?? "");
   const [categoryId, setCategoryId] = useState(transaction?.categoryId ?? "");
   const [recurring, setRecurring] = useState(Boolean(transaction?.recurringId));
+  const [installmentCount, setInstallmentCount] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -153,6 +156,9 @@ function EntryFormFields({
     const column = value as LedgerColumn;
     const nextType = defaultTypeForLedgerColumn(column);
     setSelectedColumn(column);
+    if (column !== "CARD") {
+      setInstallmentCount(1);
+    }
     setType(nextType);
     const nextCategories = categories.filter(
       (category) => category.type === nextType,
@@ -175,8 +181,11 @@ function EntryFormFields({
       description,
       date: entryDate,
       categoryId: selectedCategoryId,
-      recurring,
+      recurring: installmentCount > 1 ? false : recurring,
       ledgerColumn: selectedColumn,
+      ...(selectedColumn === "CARD" && !transaction
+        ? { installmentCount }
+        : {}),
       ...(transaction ? { id: transaction.id } : {}),
     };
 
@@ -245,15 +254,24 @@ function EntryFormFields({
               <SelectContent>
                 {LEDGER_COLUMNS.map((column) => (
                   <SelectItem key={column} value={column}>
-                    <span className="flex items-center gap-2 lowercase">
-                      <ColumnGlyph variant={ledgerColumnVariant(column)} />
-                      {LEDGER_COLUMN_LABELS[column]}
+                    <span className="flex flex-col gap-0.5 lowercase">
+                      <span className="flex items-center gap-2">
+                        <ColumnGlyph variant={ledgerColumnVariant(column)} />
+                        {LEDGER_COLUMN_LABELS[column]}
+                      </span>
+                      <span className="text-xs text-muted-foreground normal-case">
+                        {ledgerColumnHint(column)}
+                      </span>
                     </span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </FormRow>
+
+          <p className="px-4 pb-1 text-xs text-muted-foreground">
+            {ledgerColumnHint(selectedColumn)}
+          </p>
 
           <FormRow icon={<Pencil className="size-4" />}>
             <Input
@@ -286,28 +304,67 @@ function EntryFormFields({
             </label>
           </FormRow>
 
-          <FormRow icon={<CalendarSync className="size-4" />}>
-            <Select
-              value={recurring ? "repeat" : "none"}
-              onValueChange={(value) => setRecurring(value === "repeat")}
-            >
-              <SelectTrigger
-                data-testid="entry-recurring"
-                className={rowSelectTriggerClass}
-                aria-label={copy.entry.recurring}
+          {selectedColumn === "CARD" && !transaction ? (
+            <FormRow icon={<Layers className="size-4" />}>
+              <Select
+                value={String(installmentCount)}
+                onValueChange={(value) => {
+                  const count = Number(value ?? 1);
+                  setInstallmentCount(count);
+                  if (count > 1) {
+                    setRecurring(false);
+                  }
+                }}
               >
-                <span className="lowercase">
-                  {recurring ? copy.entry.repeats : copy.entry.doesNotRepeat}
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">{copy.entry.doesNotRepeat}</SelectItem>
-                <SelectItem value="repeat">{copy.entry.repeats}</SelectItem>
-              </SelectContent>
-            </Select>
-          </FormRow>
+                <SelectTrigger
+                  data-testid="entry-installments"
+                  className={rowSelectTriggerClass}
+                  aria-label={copy.entry.installments}
+                >
+                  <span className="lowercase">
+                    {installmentCount > 1
+                      ? copy.entry.installmentTimes(installmentCount)
+                      : copy.entry.installmentOnce}
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="1">{copy.entry.installmentOnce}</SelectItem>
+                  {Array.from({ length: 11 }, (_, index) => index + 2).map(
+                    (count) => (
+                      <SelectItem key={count} value={String(count)}>
+                        {copy.entry.installmentTimes(count)}
+                      </SelectItem>
+                    ),
+                  )}
+                </SelectContent>
+              </Select>
+            </FormRow>
+          ) : null}
 
-          {recurring && recurringDay != null && (
+          {installmentCount <= 1 ? (
+            <FormRow icon={<CalendarSync className="size-4" />}>
+              <Select
+                value={recurring ? "repeat" : "none"}
+                onValueChange={(value) => setRecurring(value === "repeat")}
+              >
+                <SelectTrigger
+                  data-testid="entry-recurring"
+                  className={rowSelectTriggerClass}
+                  aria-label={copy.entry.recurring}
+                >
+                  <span className="lowercase">
+                    {recurring ? copy.entry.repeats : copy.entry.doesNotRepeat}
+                  </span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{copy.entry.doesNotRepeat}</SelectItem>
+                  <SelectItem value="repeat">{copy.entry.repeats}</SelectItem>
+                </SelectContent>
+              </Select>
+            </FormRow>
+          ) : null}
+
+          {installmentCount <= 1 && recurring && recurringDay != null && (
             <p className="px-4 py-2 text-xs text-muted-foreground">
               {copy.entry.recurringHint(recurringDay)}
             </p>

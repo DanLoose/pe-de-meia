@@ -5,6 +5,7 @@ import { AuthError } from "next-auth";
 import { z } from "zod";
 import { auth, signIn, signOut } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { ensureCardAccount } from "@/lib/services/card";
 import { seedDefaultCategories } from "@/lib/services/categories";
 import type { ActionResult } from "@/types";
 
@@ -55,6 +56,7 @@ export async function registerAction(
   });
 
   await seedDefaultCategories(user.id);
+  await ensureCardAccount(user.id);
 
   try {
     await signIn("credentials", {
