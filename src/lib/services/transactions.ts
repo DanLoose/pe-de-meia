@@ -17,6 +17,7 @@ import {
   getMonthDateRange,
   parseDateOnly,
 } from "@/lib/dates";
+import { resolveLedgerColumn } from "@/lib/ledger-columns";
 
 function toNumber(value: Prisma.Decimal): number {
   return Number(value.toString());
@@ -35,6 +36,10 @@ function toTransactionDTO(
     categoryName: transaction.category.name,
     categoryColor: transaction.category.color,
     recurringId: transaction.recurringId,
+    ledgerColumn: resolveLedgerColumn(
+      transaction.ledgerColumn,
+      transaction.category.ledgerColumn,
+    ),
   };
 }
 

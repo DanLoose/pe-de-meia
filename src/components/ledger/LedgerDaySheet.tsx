@@ -45,9 +45,18 @@ import {
 import { copy } from "@/lib/copy";
 import { balanceClass, expenseClass, incomeClass } from "@/lib/design";
 import { formatCurrency, formatDateLabel } from "@/lib/format";
+import {
+  defaultTypeForLedgerColumn,
+  LEDGER_COLUMN_LABELS,
+} from "@/lib/ledger-columns";
 import { appToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-import type { CategoryDTO, TransactionDTO, TransactionType } from "@/types";
+import type {
+  CategoryDTO,
+  LedgerColumn,
+  TransactionDTO,
+  TransactionType,
+} from "@/types";
 
 type TypeFilter = "ALL" | TransactionType;
 
@@ -59,6 +68,7 @@ interface LedgerDaySheetProps {
   onChanged: () => void;
   onNavigate: (date: string) => void;
   monthDates: string[];
+  ledgerColumn?: LedgerColumn | null;
 }
 
 export function LedgerDaySheet({
@@ -69,6 +79,7 @@ export function LedgerDaySheet({
   onChanged,
   onNavigate,
   monthDates,
+  ledgerColumn = null,
 }: LedgerDaySheetProps) {
   const [transactions, setTransactions] = useState<TransactionDTO[]>([]);
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("ALL");
@@ -79,7 +90,16 @@ export function LedgerDaySheet({
   const [loadedDate, setLoadedDate] = useState<string | null>(null);
   const [isDeleting, startDeleteTransition] = useTransition();
 
+  const isColumnScoped = Boolean(ledgerColumn);
   const isLoading = Boolean(open && date && loadedDate !== date);
+  const columnLabel = ledgerColumn
+    ? LEDGER_COLUMN_LABELS[ledgerColumn]
+    : null;
+  const createDefaultType = ledgerColumn
+    ? defaultTypeForLedgerColumn(ledgerColumn)
+    : undefined;
+  const columnIsPositive =
+    ledgerColumn === "INCOME" || ledgerColumn === "SAVINGS";
 
   useEffect(() => {
     if (!open || !date) return;
@@ -106,11 +126,21 @@ export function LedgerDaySheet({
   }, [open, date]);
 
   const filtered = useMemo(() => {
-    if (typeFilter === "ALL") return transactions;
-    return transactions.filter((tx) => tx.type === typeFilter);
-  }, [transactions, typeFilter]);
+    let next = transactions;
+    if (ledgerColumn) {
+      next = next.filter((tx) => tx.ledgerColumn === ledgerColumn);
+    } else if (typeFilter !== "ALL") {
+      next = next.filter((tx) => tx.type === typeFilter);
+    }
+    return next;
+  }, [transactions, typeFilter, ledgerColumn]);
 
   const totals = useMemo(() => {
+    if (ledgerColumn) {
+      const total = filtered.reduce((sum, tx) => sum + tx.amount, 0);
+      return { income: 0, expense: 0, net: 0, column: total };
+    }
+
     return filtered.reduce(
       (acc, transaction) => {
         if (transaction.type === "INCOME") {
@@ -121,9 +151,9 @@ export function LedgerDaySheet({
         acc.net = acc.income - acc.expense;
         return acc;
       },
-      { income: 0, expense: 0, net: 0 },
+      { income: 0, expense: 0, net: 0, column: 0 },
     );
-  }, [filtered]);
+  }, [filtered, ledgerColumn]);
 
   const dateIndex = date ? monthDates.indexOf(date) : -1;
   const canGoPrev = dateIndex > 0;
@@ -136,6 +166,11 @@ export function LedgerDaySheet({
       setLoadedDate(null);
       onNavigate(nextDate);
     }
+  };
+
+  const openCreateForm = () => {
+    setEditing(null);
+    setFormOpen(true);
   };
 
   const confirmDelete = () => {
@@ -208,9 +243,19 @@ export function LedgerDaySheet({
               </Button>
               <div className="text-center">
                 <SheetTitle>
-                  {date ? formatDateLabel(date) : copy.daySheet.titleFallback}
+                  {columnLabel
+                    ? columnLabel
+                    : date
+                      ? formatDateLabel(date)
+                      : copy.daySheet.titleFallback}
                 </SheetTitle>
-                <SheetDescription>{copy.daySheet.description}</SheetDescription>
+                <SheetDescription>
+                  {isColumnScoped
+                    ? date
+                      ? `${formatDateLabel(date)} · ${copy.daySheet.columnDescription}`
+                      : copy.daySheet.columnDescription
+                    : copy.daySheet.description}
+                </SheetDescription>
               </div>
               <Button
                 variant="ghost"
@@ -224,49 +269,63 @@ export function LedgerDaySheet({
             </div>
           </SheetHeader>
 
-          <div className="grid grid-cols-3 gap-2 text-sm">
-            <div className="rounded-lg border p-3">
-              <p className="text-muted-foreground">{copy.daySheet.income}</p>
-              <p className={cn("font-medium", incomeClass())}>
-                {formatCurrency(totals.income)}
+          {isColumnScoped ? (
+            <div className="rounded-lg border p-3 text-sm">
+              <p className="text-muted-foreground">{copy.daySheet.columnTotal}</p>
+              <p
+                className={cn(
+                  "font-medium",
+                  columnIsPositive ? incomeClass() : expenseClass(),
+                )}
+              >
+                {formatCurrency(totals.column)}
               </p>
             </div>
-            <div className="rounded-lg border p-3">
-              <p className="text-muted-foreground">{copy.daySheet.expense}</p>
-              <p className={cn("font-medium", expenseClass())}>
-                {formatCurrency(totals.expense)}
-              </p>
+          ) : (
+            <div className="grid grid-cols-3 gap-2 text-sm">
+              <div className="rounded-lg border p-3">
+                <p className="text-muted-foreground">{copy.daySheet.income}</p>
+                <p className={cn("font-medium", incomeClass())}>
+                  {formatCurrency(totals.income)}
+                </p>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-muted-foreground">{copy.daySheet.expense}</p>
+                <p className={cn("font-medium", expenseClass())}>
+                  {formatCurrency(totals.expense)}
+                </p>
+              </div>
+              <div className="rounded-lg border p-3">
+                <p className="text-muted-foreground">{copy.daySheet.net}</p>
+                <p className={cn("font-medium", balanceClass(totals.net))}>
+                  {formatCurrency(totals.net)}
+                </p>
+              </div>
             </div>
-            <div className="rounded-lg border p-3">
-              <p className="text-muted-foreground">{copy.daySheet.net}</p>
-              <p className={cn("font-medium", balanceClass(totals.net))}>
-                {formatCurrency(totals.net)}
-              </p>
-            </div>
-          </div>
+          )}
 
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <Select
-              value={typeFilter}
-              onValueChange={(value) => setTypeFilter(value as TypeFilter)}
-            >
-              <SelectTrigger className="w-[160px]" aria-label={copy.ledger.filterType}>
-                <span>{copy.ledger.filterType}</span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">{copy.ledger.filterAll}</SelectItem>
-                <SelectItem value="INCOME">{copy.entry.income}</SelectItem>
-                <SelectItem value="EXPENSE">{copy.entry.expense}</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              size="sm"
-              onClick={() => {
-                setEditing(null);
-                setFormOpen(true);
-              }}
-              disabled={!date}
-            >
+            {!isColumnScoped ? (
+              <Select
+                value={typeFilter}
+                onValueChange={(value) => setTypeFilter(value as TypeFilter)}
+              >
+                <SelectTrigger
+                  className="w-[160px]"
+                  aria-label={copy.ledger.filterType}
+                >
+                  <span>{copy.ledger.filterType}</span>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">{copy.ledger.filterAll}</SelectItem>
+                  <SelectItem value="INCOME">{copy.entry.income}</SelectItem>
+                  <SelectItem value="EXPENSE">{copy.entry.expense}</SelectItem>
+                </SelectContent>
+              </Select>
+            ) : (
+              <div />
+            )}
+            <Button size="sm" onClick={openCreateForm} disabled={!date}>
               <Plus className="size-4" />
               {copy.daySheet.addEntry}
             </Button>
@@ -288,14 +347,7 @@ export function LedgerDaySheet({
                 title={copy.empty.dayTitle}
                 description={copy.empty.dayDescription}
                 action={
-                  <Button
-                    size="sm"
-                    onClick={() => {
-                      setEditing(null);
-                      setFormOpen(true);
-                    }}
-                    disabled={!date}
-                  >
+                  <Button size="sm" onClick={openCreateForm} disabled={!date}>
                     <Plus className="size-4" />
                     {copy.daySheet.addEntry}
                   </Button>
@@ -384,7 +436,9 @@ export function LedgerDaySheet({
         <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>{copy.deleteConfirm.title}</DialogTitle>
-            <DialogDescription>{copy.deleteConfirm.description}</DialogDescription>
+            <DialogDescription>
+              {copy.deleteConfirm.description}
+            </DialogDescription>
           </DialogHeader>
           <DialogFooter>
             <Button
@@ -402,7 +456,9 @@ export function LedgerDaySheet({
               onClick={confirmDelete}
               disabled={isDeleting}
             >
-              {isDeleting ? copy.deleteConfirm.deleting : copy.deleteConfirm.confirm}
+              {isDeleting
+                ? copy.deleteConfirm.deleting
+                : copy.deleteConfirm.confirm}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -414,6 +470,9 @@ export function LedgerDaySheet({
         date={date}
         categories={categories}
         transaction={editing}
+        defaultType={editing ? undefined : createDefaultType}
+        lockType={isColumnScoped && !editing}
+        ledgerColumn={ledgerColumn ?? undefined}
         onSaved={handleSaved}
         createAction={createTransactionAction}
         updateAction={updateTransactionAction}

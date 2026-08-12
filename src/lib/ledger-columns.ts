@@ -14,6 +14,12 @@ export function resolveLedgerColumn(
   return (txLedgerColumn ?? categoryLedgerColumn) as LedgerColumn;
 }
 
+export function defaultTypeForLedgerColumn(
+  column: LedgerColumn,
+): "INCOME" | "EXPENSE" {
+  return column === "INCOME" || column === "SAVINGS" ? "INCOME" : "EXPENSE";
+}
+
 export const LEDGER_COLUMN_LABELS: Record<LedgerColumn, string> = {
   INCOME: "Entradas",
   EXPENSE: "Saídas",
