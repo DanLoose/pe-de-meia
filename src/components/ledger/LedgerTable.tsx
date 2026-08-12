@@ -4,6 +4,11 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { fetchLedgerMonthAction } from "@/app/actions/ledger";
+import {
+  createTransactionAction,
+  updateTransactionAction,
+} from "@/app/actions/transactions";
+import { EntryForm } from "@/components/entries/EntryForm";
 import { BalanceCell } from "@/components/ledger/BalanceCell";
 import {
   ColumnGlyph,
@@ -17,6 +22,7 @@ import { LedgerDaySheet } from "@/components/ledger/LedgerDaySheet";
 import { Button } from "@/components/ui/button";
 import { copy } from "@/lib/copy";
 import { ledgerRowHasActivity } from "@/lib/design";
+import { defaultTypeForLedgerColumn } from "@/lib/ledger-columns";
 import { cn } from "@/lib/utils";
 import type { CategoryDTO, LedgerColumn, LedgerMonthData } from "@/types";
 
@@ -97,6 +103,11 @@ export function LedgerTable({
     null,
   );
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [draft, setDraft] = useState<{
+    date: string;
+    ledgerColumn: LedgerColumn;
+  } | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const year = data.year;
@@ -138,6 +149,11 @@ export function LedgerTable({
     setSelectedDate(date);
     setSelectedColumn(ledgerColumn);
     setSheetOpen(true);
+  };
+
+  const handleAddClick = (date: string, ledgerColumn: LedgerColumn) => {
+    setDraft({ date, ledgerColumn });
+    setFormOpen(true);
   };
 
   const handleChanged = () => {
@@ -235,6 +251,7 @@ export function LedgerTable({
                       variant="income"
                       selected={isColumnSelected(row.date, "INCOME")}
                       onClick={() => handleColumnClick(row.date, "INCOME")}
+                      onAdd={() => handleAddClick(row.date, "INCOME")}
                     />
                     <MovementCell
                       date={row.date}
@@ -242,6 +259,7 @@ export function LedgerTable({
                       variant="expense"
                       selected={isColumnSelected(row.date, "EXPENSE")}
                       onClick={() => handleColumnClick(row.date, "EXPENSE")}
+                      onAdd={() => handleAddClick(row.date, "EXPENSE")}
                     />
                     <MovementCell
                       date={row.date}
@@ -249,6 +267,7 @@ export function LedgerTable({
                       variant="daily"
                       selected={isColumnSelected(row.date, "DAILY")}
                       onClick={() => handleColumnClick(row.date, "DAILY")}
+                      onAdd={() => handleAddClick(row.date, "DAILY")}
                     />
                     <MovementCell
                       date={row.date}
@@ -256,6 +275,7 @@ export function LedgerTable({
                       variant="savings"
                       selected={isColumnSelected(row.date, "SAVINGS")}
                       onClick={() => handleColumnClick(row.date, "SAVINGS")}
+                      onAdd={() => handleAddClick(row.date, "SAVINGS")}
                     />
                     <MovementCell
                       date={row.date}
@@ -263,6 +283,7 @@ export function LedgerTable({
                       variant="card"
                       selected={isColumnSelected(row.date, "CARD")}
                       onClick={() => handleColumnClick(row.date, "CARD")}
+                      onAdd={() => handleAddClick(row.date, "CARD")}
                     />
                     <BalanceCell value={row.balance} muted={!hasActivity} />
                   </tr>
@@ -307,6 +328,29 @@ export function LedgerTable({
         onNavigate={handleDayNavigate}
         monthDates={data.rows.map((row) => row.date)}
         ledgerColumn={selectedColumn}
+        onColumnChange={setSelectedColumn}
+      />
+
+      <EntryForm
+        open={formOpen}
+        onOpenChange={(open) => {
+          setFormOpen(open);
+          if (!open) setDraft(null);
+        }}
+        date={draft?.date ?? null}
+        categories={categories}
+        defaultType={
+          draft ? defaultTypeForLedgerColumn(draft.ledgerColumn) : undefined
+        }
+        lockType
+        ledgerColumn={draft?.ledgerColumn}
+        onSaved={() => {
+          setFormOpen(false);
+          setDraft(null);
+          handleChanged();
+        }}
+        createAction={createTransactionAction}
+        updateAction={updateTransactionAction}
       />
     </>
   );
