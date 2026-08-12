@@ -1,6 +1,6 @@
 # Pé-de-meia
 
-Personal finance calendar web app. Track daily income and expenses on a month/week calendar view.
+App web de finanças pessoais: **receitas e gastos fixos**, **estimativa de gastos variáveis** (custo de vida) e planilha de **caixa** com projeção.
 
 ## Stack
 
@@ -8,7 +8,6 @@ Personal finance calendar web app. Track daily income and expenses on a month/we
 - PostgreSQL + Prisma
 - Auth.js (credentials)
 - Tailwind CSS + shadcn/ui
-- FullCalendar
 
 ## Prerequisites
 
@@ -63,15 +62,21 @@ Demo credentials: `demo@pedemeia.dev` / `password123`
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000). After sign-in the app opens **Totais** (`/totais`).
 
-## Features (v1)
+## Features (product V1)
 
 - Email/password sign up and sign in
-- Month and week calendar views
-- Daily income, expense, and net totals on each day
-- Create, edit, and delete entries per day
-- User-scoped data (ready for future SaaS multi-tenancy)
+- **Receitas fixas** e **gastos fixos** (recorrentes)
+- **Gastos variáveis (estimativa)** — orçamento mensal do consumo variável (sem teto diário nesta fase)
+- **Custo de vida** ≈ fixos + estimativa de variáveis
+- Planilha **Saldos** (saldo running), **Totais**, **Horizonte**
+- Tags, cartão (fechamento/vencimento), onboarding
+- User-scoped data
+
+Product/domain definitions: [`docs/PRODUTO.md`](docs/PRODUTO.md), [`docs/DOMINIO.md`](docs/DOMINIO.md), [`docs/MAPEAMENTO-LEGADO.md`](docs/MAPEAMENTO-LEGADO.md).
+
+**Later (not V1):** daily expense logging with payment method (V2); optional “Diário” ceiling (V3).
 
 ## Automated tests (Playwright)
 
