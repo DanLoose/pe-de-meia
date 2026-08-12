@@ -21,6 +21,7 @@ import {
 } from "@/app/actions/transactions";
 import { EntryForm } from "@/components/entries/EntryForm";
 import { ColumnGlyph } from "@/components/ledger/LedgerCells";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -63,6 +64,8 @@ import {
   defaultTypeForLedgerColumn,
   LEDGER_COLUMN_LABELS,
   LEDGER_COLUMNS,
+  cardEntryKindLabel,
+  ledgerColumnHint,
   ledgerColumnVariant,
 } from "@/lib/ledger-columns";
 import { appToast } from "@/lib/toast";
@@ -330,14 +333,25 @@ export function LedgerDaySheet({
               <SelectItem value="ALL">{copy.ledger.filterAll}</SelectItem>
               {LEDGER_COLUMNS.map((column) => (
                 <SelectItem key={column} value={column}>
-                  <span className="flex items-center gap-2">
-                    <ColumnGlyph variant={ledgerColumnVariant(column)} />
-                    {LEDGER_COLUMN_LABELS[column]}
+                  <span className="flex flex-col gap-0.5">
+                    <span className="flex items-center gap-2">
+                      <ColumnGlyph variant={ledgerColumnVariant(column)} />
+                      {LEDGER_COLUMN_LABELS[column]}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {ledgerColumnHint(column)}
+                    </span>
                   </span>
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+
+          {ledgerColumn ? (
+            <p className="text-xs text-muted-foreground">
+              {ledgerColumnHint(ledgerColumn)}
+            </p>
+          ) : null}
 
           <div className="min-h-0 flex-1 overflow-y-auto">
             {isLoading && transactions.length === 0 && (
@@ -387,7 +401,17 @@ export function LedgerDaySheet({
                   >
                     <ColumnGlyph variant={variant} />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium">{title}</p>
+                      <div className="flex min-w-0 items-center gap-2">
+                        <p className="truncate font-medium">{title}</p>
+                        {transaction.ledgerColumn === "CARD" ? (
+                          <Badge
+                            variant="outline"
+                            className="h-5 shrink-0 lowercase"
+                          >
+                            {cardEntryKindLabel(transaction.affectsBalance)}
+                          </Badge>
+                        ) : null}
+                      </div>
                       <p className="text-xs text-muted-foreground">
                         {formatNumericDateLabel(transaction.date)}
                       </p>

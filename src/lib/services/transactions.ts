@@ -17,7 +17,14 @@ import {
   getMonthDateRange,
   parseDateOnly,
 } from "@/lib/dates";
+import { nextCycleStart } from "@/lib/card-cycle";
+import { defaultAffectsBalance } from "@/lib/cash";
 import { resolveLedgerColumn } from "@/lib/ledger-columns";
+import {
+  isCardPaymentTransaction,
+  resolveCardInvoiceId,
+  resolveInvoiceForPurchase,
+} from "@/lib/services/card";
 
 function toNumber(value: Prisma.Decimal): number {
   return Number(value.toString());
@@ -40,6 +47,8 @@ function toTransactionDTO(
       transaction.ledgerColumn,
       transaction.category.ledgerColumn,
     ),
+    affectsBalance: transaction.affectsBalance,
+    cardInvoiceId: transaction.cardInvoiceId,
   };
 }
 
@@ -85,6 +94,8 @@ async function assertCategoryOwnership(
   if (!category) {
     throw new Error("Invalid category for this transaction type");
   }
+
+  return category;
 }
 
 export async function getTransactionsByMonth(
@@ -173,10 +184,73 @@ export async function createTransaction(
   input: CreateTransactionInput,
 ): Promise<TransactionDTO> {
   const data = createTransactionSchema.parse(input);
-  await assertCategoryOwnership(userId, data.categoryId, data.type);
+  const category = await assertCategoryOwnership(
+    userId,
+    data.categoryId,
+    data.type,
+  );
 
   const date = parseDateOnly(data.date);
   const description = data.description?.trim() || null;
+  const ledgerColumn = resolveLedgerColumn(
+    data.ledgerColumn,
+    category.ledgerColumn,
+  );
+  const affectsBalance = defaultAffectsBalance(ledgerColumn);
+  const installmentCount =
+    ledgerColumn === "CARD" && !data.recurring
+      ? (data.installmentCount ?? 1)
+      : 1;
+
+  if (installmentCount > 1) {
+    let purchaseDate = date;
+    let first: TransactionDTO | null = null;
+
+    for (let index = 1; index <= installmentCount; index++) {
+      const cardInvoiceId = await resolveCardInvoiceId(
+        userId,
+        ledgerColumn,
+        purchaseDate,
+      );
+      const note = description
+        ? `${description} (${index}/${installmentCount})`
+        : `${index}/${installmentCount}`;
+
+      const created = await prisma.transaction.create({
+        data: {
+          userId,
+          categoryId: data.categoryId,
+          type: data.type,
+          amount: data.amount,
+          description: note,
+          date: purchaseDate,
+          ledgerColumn,
+          affectsBalance: false,
+          cardInvoiceId,
+          installmentIndex: index,
+          installmentCount,
+        },
+        include: { category: true },
+      });
+
+      if (!first) {
+        first = toTransactionDTO(created);
+      }
+
+      if (index < installmentCount) {
+        const invoice = await resolveInvoiceForPurchase(userId, purchaseDate);
+        purchaseDate = nextCycleStart(invoice.cycleEnd);
+      }
+    }
+
+    return first!;
+  }
+
+  const cardInvoiceId = await resolveCardInvoiceId(
+    userId,
+    ledgerColumn,
+    date,
+  );
 
   if (data.recurring) {
     const dayOfMonth = date.getUTCDate();
@@ -202,7 +276,9 @@ export async function createTransaction(
           description,
           date,
           recurringId: recurring.id,
-          ledgerColumn: data.ledgerColumn,
+          ledgerColumn,
+          affectsBalance,
+          cardInvoiceId,
         },
         include: { category: true },
       });
@@ -219,7 +295,9 @@ export async function createTransaction(
       amount: data.amount,
       description,
       date,
-      ledgerColumn: data.ledgerColumn,
+      ledgerColumn,
+      affectsBalance,
+      cardInvoiceId,
     },
     include: { category: true },
   });
@@ -241,10 +319,26 @@ export async function updateTransaction(
     throw new Error("Transaction not found");
   }
 
-  await assertCategoryOwnership(userId, data.categoryId, data.type);
+  const category = await assertCategoryOwnership(
+    userId,
+    data.categoryId,
+    data.type,
+  );
 
   const date = parseDateOnly(data.date);
   const description = data.description?.trim() || null;
+  const ledgerColumn = resolveLedgerColumn(
+    data.ledgerColumn,
+    category.ledgerColumn,
+  );
+  const isPayment = await isCardPaymentTransaction(existing.id);
+  const resolvedColumn = isPayment ? "CARD" : ledgerColumn;
+  const affectsBalance = isPayment
+    ? true
+    : defaultAffectsBalance(resolvedColumn);
+  const cardInvoiceId = isPayment
+    ? null
+    : await resolveCardInvoiceId(userId, resolvedColumn, date);
 
   const transaction = await prisma.$transaction(async (tx) => {
     let recurringId = existing.recurringId;
@@ -277,6 +371,9 @@ export async function updateTransaction(
         description,
         date,
         recurringId,
+        ledgerColumn: resolvedColumn,
+        affectsBalance,
+        cardInvoiceId,
       },
       include: { category: true },
     });

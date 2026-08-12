@@ -28,7 +28,7 @@ Planilhas funcionam, mas são manuais. Calendários genéricos mostram eventos, 
 1. **Planilha diária (Saldos)** — uma linha por dia, colunas por tipo de movimento, saldo running com heatmap.
 2. **Dashboard mensal (Totais)** — performance, economia, custo de vida, diário médio.
 3. **Projeção (Horizonte)** — saldo projetado dia a dia por vários meses.
-4. **Previsão de diário** — teto diário calculado a partir de gastos fixos mensais.
+4. **Previsão de diário** — teto diário a partir do orçamento de gastos variáveis (coluna Diários).
 
 O **calendário** permanece como visão alternativa (já implementado).
 
@@ -117,61 +117,60 @@ Transações manuais ──► Saldos ──► Totais (KPIs)
 
 ## 4. Modelo de domínio
 
-### 4.1 Colunas contábeis (LedgerColumn)
+A definição canônica das colunas, do caixa e da fatura está em [`DOMINIO.md`](./DOMINIO.md). O plano de código está em [`PLANO-DOMINIO.md`](./PLANO-DOMINIO.md).
 
-Tipos fixos na planilha, independentes de categoria:
+Resumo (alvo):
 
-| Código | Nome | Ícone | Papel |
+| Código | Nome | Papel | Caixa |
 |--------|------|-------|-------|
-| `INCOME` | Entradas | ↙ verde | Receitas |
-| `EXPENSE` | Saídas | ↗ vermelho | Despesas pontuais |
-| `DAILY` | Diários | D rosa | Gastos fixos do dia a dia |
-| `SAVINGS` | Economias | E verde | Reservas / poupança |
-| `CARD` | Cartão | C roxo | Compromissos de cartão |
+| `INCOME` | Entradas | Ganho que entra na conta | `+` |
+| `EXPENSE` | Saídas | Contas/compromissos pagos da conta | `−` no pagamento |
+| `DAILY` | Diários | Consumo variável à vista | `−` no dia |
+| `SAVINGS` | Economias | Transferência para reserva | `−` no caixa |
+| `CARD` | Cartão | Compra no crédito; fatura no vencimento | compra não; pagamento sim |
 
-**Mapeamento inicial:** categorias existentes ganham um campo `ledgerColumn` (default: `INCOME` ou `EXPENSE` conforme `type`).
-
-### 4.2 Saldo running
-
-Para cada dia `d` do mês:
+### 4.1 Saldo running (alvo)
 
 ```
 saldo[d] = saldo[d-1]
          + entradas[d]
-         - saídas[d]
-         - diários[d]
-         - cartão[d]
-         + economias[d]   // economia como movimento positivo no caixa, ou negativo se retirada — definir convenção na Fase B
+         − saídas[d]
+         − diários[d]
+         − pagamentos_de_fatura[d]
+         − economias[d]
 ```
 
-**Saldo inicial do mês:** `openingBalance` configurável pelo usuário (ou saldo final do mês anterior).
+**Saldo inicial:** `openingBalance` do usuário.
 
-### 4.3 KPIs (Totais)
+### 4.2 KPIs (Totais)
 
 | KPI | Fórmula | Status textual |
 |-----|---------|----------------|
 | **Performance** | `entradas_mês − custo_de_vida` | "sobrou dinheiro" / "no vermelho" |
 | **Economizado** | `economias_mês / entradas_mês × 100` | "nada guardado" / "X% guardado" |
-| **Custo de vida** | `saídas + diários + cartão` | "dentro da renda" / "acima da renda" |
+| **Custo de vida** | `saídas + diários + faturas pagas` | "dentro da renda" / "acima da renda" |
 | **Diário médio** | `gasto_diários_mês / dias_com_gasto` vs teto da Previsão | compara com R$ X/dia previsto |
 
-### 4.4 Previsão de diário
+### 4.3 Previsão de diário
+
+Orçamento **somente de Diários** (não contas fixas nem fatura):
 
 ```
-teto_diário = Σ(gastos_fixos_mensais) / divisor_dias
+teto_diário = Σ(gastos_mensais_de_diário) / divisor_dias
 ```
 
-- `gastos_fixos_mensais`: lista editável (Mercado, Combustível…).
+- Lista editável (Mercado, Combustível, lazer…).
 - `divisor_dias`: padrão 30, configurável.
 
-### 4.5 Horizonte
+### 4.4 Horizonte
 
 Para cada dia futuro `d` em `[hoje .. hoje + N meses]`:
 
 ```
 saldo_projetado[d] = saldo_projetado[d-1]
-                   + recorrentes_previstas[d]
-                   + lançamentos_manuais_futuros[d]   // se houver
+                   + recorrentes_de_caixa[d]
+                   + lançamentos_manuais_de_caixa[d]
+                   + pagamentos_de_fatura[d]
 ```
 
 Heatmap: vermelho (negativo) → amarelo (baixo) → verde (saudável). Thresholds configuráveis por usuário (Fase E).
@@ -333,11 +332,11 @@ model Transaction {
 
 ### Épico D — Previsão de diário
 
-**Objetivo:** Calcular teto diário a partir de gastos fixos.
+**Objetivo:** Calcular teto diário a partir do orçamento de gastos variáveis (Diários).
 
 | ID | User story | Critérios de aceite |
 |----|------------|---------------------|
-| D1 | Como usuário, quero listar gastos fixos mensais | CRUD com nome + valor |
+| D1 | Como usuário, quero listar itens do orçamento mensal de diários | CRUD com nome + valor |
 | D2 | Como usuário, quero dividir por N dias | Dropdown (28/30/31/custom) |
 | D3 | Como usuário, quero ver o teto diário calculado | Destaque R$ X/dia |
 | D4 | Como usuário, quero que o teto alimente Totais | Card Diário médio referencia teto |

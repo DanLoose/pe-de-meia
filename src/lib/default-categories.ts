@@ -17,6 +17,7 @@ export const DEFAULT_CATEGORIES: DefaultCategory[] = [
   { name: "Transporte", color: "#eab308", type: "EXPENSE", ledgerColumn: "DAILY" },
   { name: "Contas", color: "#a855f7", type: "EXPENSE", ledgerColumn: "EXPENSE" },
   { name: "Outras despesas", color: "#64748b", type: "EXPENSE", ledgerColumn: "EXPENSE" },
+  { name: "Fatura", color: "#6366f1", type: "EXPENSE", ledgerColumn: "CARD" },
 ];
 
 /** Maps legacy English seed names to pt-BR for existing databases. */

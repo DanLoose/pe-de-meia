@@ -70,6 +70,22 @@ test.describe("Planilha de saldos", () => {
     );
   });
 
+  test("opens column sheet from the economias cell", async ({ page }) => {
+    const testDate = "2026-08-12";
+    await page.getByTestId(`ledger-cell-${testDate}-savings`).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expect(page.getByTestId("ledger-column-filter")).toContainText(
+      copy.ledger.savings,
+    );
+    await page.getByRole("button", { name: copy.daySheet.addEntry }).first().click();
+    await expect(
+      page.getByRole("heading", { name: copy.entry.new }),
+    ).toBeVisible();
+    await expect(page.getByTestId("entry-submit")).toContainText(
+      copy.ledger.savings.toLowerCase(),
+    );
+  });
+
   test("opens column sheet from the diarios cell", async ({ page }) => {
     const testDate = "2026-08-12";
     await page.getByTestId(`ledger-cell-${testDate}-daily`).click();

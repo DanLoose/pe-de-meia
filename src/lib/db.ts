@@ -15,8 +15,21 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
-
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
+function isPrismaClientReady(client: PrismaClient): boolean {
+  return "cardAccount" in client && "cardInvoice" in client;
 }
+
+function getPrismaClient(): PrismaClient {
+  const cached = globalForPrisma.prisma;
+  if (cached && isPrismaClientReady(cached)) {
+    return cached;
+  }
+
+  const client = createPrismaClient();
+  if (process.env.NODE_ENV !== "production") {
+    globalForPrisma.prisma = client;
+  }
+  return client;
+}
+
+export const prisma = getPrismaClient();

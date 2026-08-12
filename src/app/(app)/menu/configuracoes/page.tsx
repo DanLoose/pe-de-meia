@@ -18,6 +18,8 @@ export default async function ConfiguracoesPage() {
       <PageHeader
         title={copy.settings.title}
         description={copy.settings.subtitle}
+        backHref="/menu"
+        backLabel={copy.menu.back}
       />
       <SettingsForm settings={settings} />
     </div>
