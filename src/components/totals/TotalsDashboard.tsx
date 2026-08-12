@@ -117,7 +117,7 @@ export function TotalsDashboard({ data, today }: TotalsDashboardProps) {
           statusAction={
             data.dailyCeiling === null
               ? {
-                  href: "/menu/previsao-diario",
+                  href: "/gastos-fixos/orcamento-diario",
                   label: copy.totals.configureDailyCeiling,
                 }
               : undefined

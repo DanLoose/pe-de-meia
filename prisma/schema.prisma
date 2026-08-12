@@ -33,6 +33,11 @@ enum CardInvoiceStatus {
   PAID
 }
 
+enum TransactionOrigin {
+  USER
+  DAILY_BUDGET
+}
+
 model User {
   id                 String                 @id @default(cuid())
   name               String?
@@ -133,6 +138,8 @@ model RecurringTransaction {
   amount       Decimal         @db.Decimal(12, 2)
   description  String?
   dayOfMonth   Int
+  startsOn     DateTime        @db.Date
+  endsOn       DateTime?       @db.Date
   active       Boolean         @default(true)
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
@@ -153,6 +160,7 @@ model Transaction {
   amount           Decimal               @db.Decimal(12, 2)
   description      String?
   date             DateTime              @db.Date
+  origin           TransactionOrigin     @default(USER)
   recurringId      String?
   cardInvoiceId    String?
   installmentIndex Int?
@@ -168,6 +176,7 @@ model Transaction {
   @@unique([recurringId, date])
   @@index([userId, date])
   @@index([userId, date, ledgerColumn])
+  @@index([userId, date, origin])
   @@index([cardInvoiceId])
 }
 

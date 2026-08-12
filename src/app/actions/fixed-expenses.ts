@@ -52,6 +52,7 @@ export async function upsertFixedExpenseAction(
           amount: parsed.amount,
         });
 
+    revalidatePath("/gastos-fixos/orcamento-diario");
     revalidatePath("/menu/previsao-diario");
     revalidatePath("/comecar");
     revalidatePath("/totais");
@@ -71,6 +72,7 @@ export async function deleteFixedExpenseAction(
   try {
     const userId = await getSessionUserId();
     await deleteFixedExpense(userId, id);
+    revalidatePath("/gastos-fixos/orcamento-diario");
     revalidatePath("/menu/previsao-diario");
     revalidatePath("/comecar");
     revalidatePath("/totais");
@@ -93,6 +95,7 @@ export async function updateDailyDivisorAction(
       return { success: false, error: "Divisor deve ser entre 1 e 31" };
     }
     await updateDailyDivisor(userId, dailyDivisor);
+    revalidatePath("/gastos-fixos/orcamento-diario");
     revalidatePath("/menu/previsao-diario");
     revalidatePath("/comecar");
     revalidatePath("/totais");

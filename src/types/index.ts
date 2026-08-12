@@ -60,6 +60,8 @@ export interface RecurringTransactionDTO {
   amount: number;
   description: string | null;
   dayOfMonth: number;
+  startsOn: string;
+  endsOn: string | null;
   active: boolean;
   categoryId: string;
   categoryName: string;
@@ -158,7 +160,10 @@ export interface FixedExpenseDTO {
 }
 
 export interface OnboardingStatus {
+  /** True when a brand-new account should be sent to /comecar from Saldos. */
   needsOnboarding: boolean;
+  /** True after the user finishes or skips the wizard. */
+  wizardCompleted: boolean;
   hasOpeningBalance: boolean;
   hasRecurring: boolean;
   hasDailyForecast: boolean;

@@ -13,6 +13,7 @@ import type { DailySummary, MonthData, TransactionDTO } from "@/types";
 import { getBudgetSummaryForRange } from "@/lib/services/budgets";
 import { ensureRecurringTransactions } from "@/lib/services/recurring";
 import {
+  defaultRecurringStartsOn,
   formatDateOnly,
   getMonthDateRange,
   parseDateOnly,
@@ -264,6 +265,7 @@ export async function createTransaction(
           amount: data.amount,
           description,
           dayOfMonth,
+          startsOn: defaultRecurringStartsOn(dayOfMonth, date),
         },
       });
 
@@ -352,6 +354,7 @@ export async function updateTransaction(
           amount: data.amount,
           description,
           dayOfMonth: date.getUTCDate(),
+          startsOn: defaultRecurringStartsOn(date.getUTCDate(), date),
         },
       });
       recurringId = recurring.id;

@@ -9,9 +9,9 @@ export const appToast = {
   categoryUpdated: () => toast.success(copy.toast.categoryUpdated),
   categoryDeleted: () => toast.success(copy.toast.categoryDeleted),
   budgetSaved: () => toast.success(copy.toast.budgetSaved),
-  recurringCreated: () => toast.success(copy.toast.recurringCreated),
-  recurringUpdated: () => toast.success(copy.toast.recurringUpdated),
-  recurringDeleted: () => toast.success(copy.toast.recurringDeleted),
+  fixedExpenseCreated: () => toast.success(copy.toast.fixedExpenseCreated),
+  fixedExpenseUpdated: () => toast.success(copy.toast.fixedExpenseUpdated),
+  fixedExpenseDeleted: () => toast.success(copy.toast.fixedExpenseDeleted),
   success: (message: string) => toast.success(message),
   error: (message?: string) =>
     toast.error(message ?? copy.toast.genericError),

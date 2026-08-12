@@ -13,6 +13,7 @@ import type { ActionResult, CategoryDTO } from "@/types";
 function revalidateApp() {
   revalidatePath("/calendar");
   revalidatePath("/categories");
+  revalidatePath("/gastos-fixos");
   revalidatePath("/recurring");
 }
 

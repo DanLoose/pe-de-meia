@@ -25,7 +25,7 @@ export function SaldosEmptyHint() {
         </div>
         <div className="flex shrink-0 flex-col gap-2 sm:items-end">
           <Link
-            href="/recorrentes"
+            href="/gastos-fixos"
             className={cn(buttonVariants({ variant: "outline", size: "sm" }), "gap-2")}
           >
             <Repeat className="size-4" />

@@ -23,7 +23,7 @@ type NavLink = {
 
 const dailyLinks: NavLink[] = [
   { href: "/saldos", label: copy.nav.saldos, icon: Table2 },
-  { href: "/recorrentes", label: copy.nav.recurring, icon: Repeat },
+  { href: "/gastos-fixos", label: copy.nav.gastosFixos, icon: Repeat },
   { href: "/totais", label: copy.nav.totais, icon: BarChart3 },
 ];
 

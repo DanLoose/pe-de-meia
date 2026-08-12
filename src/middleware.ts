@@ -27,6 +27,7 @@ export const config = {
     "/calendar/:path*",
     "/tags/:path*",
     "/categories/:path*",
+    "/gastos-fixos/:path*",
     "/recorrentes/:path*",
     "/recurring/:path*",
     "/login",

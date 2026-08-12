@@ -23,15 +23,16 @@ export async function getOnboardingStatus(
   const hasDailyForecast = dailyCeiling.totalFixed > 0;
   const hasTransactions = transactionCount > 0;
 
-  const needsOnboarding =
-    user.onboardingCompletedAt === null &&
+  const wizardCompleted = user.onboardingCompletedAt !== null;
+  const isFreshAccount =
     !hasOpeningBalance &&
     !hasRecurring &&
     !hasDailyForecast &&
     !hasTransactions;
 
   return {
-    needsOnboarding,
+    needsOnboarding: !wizardCompleted && isFreshAccount,
+    wizardCompleted,
     hasOpeningBalance,
     hasRecurring,
     hasDailyForecast,

@@ -9,12 +9,21 @@ import {
   CreditCard,
   Home,
   PiggyBank,
+  Plus,
   Sparkles,
+  Trash2,
   Wallet,
 } from "lucide-react";
 import { useState, useTransition } from "react";
-import { createRecurringAction } from "@/app/actions/recurring";
-import { upsertFixedExpenseAction } from "@/app/actions/fixed-expenses";
+import {
+  createRecurringAction,
+  deleteRecurringAction,
+  updateRecurringAction,
+} from "@/app/actions/recurring";
+import {
+  deleteFixedExpenseAction,
+  upsertFixedExpenseAction,
+} from "@/app/actions/fixed-expenses";
 import {
   completeOnboardingAction,
   skipOnboardingAction,
@@ -26,6 +35,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/ui/money-input";
 import { copy } from "@/lib/copy";
+import { appToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import type { CategoryDTO } from "@/types";
 
@@ -36,12 +46,14 @@ type FixedBillDraft = {
   name: string;
   amount: number;
   dayOfMonth: string;
+  recurringId?: string;
 };
 
 type DailyItemDraft = {
   id: string;
   name: string;
   amount: number;
+  expenseId?: string;
 };
 
 interface OnboardingWizardProps {
@@ -67,6 +79,14 @@ function defaultDailyItems(): DailyItemDraft[] {
   return [{ id: newDraftId(), name: "Mercado", amount: 0 }];
 }
 
+function isValidBill(bill: FixedBillDraft) {
+  return bill.name.trim().length > 0 && bill.amount > 0;
+}
+
+function isValidDailyItem(item: DailyItemDraft) {
+  return item.name.trim().length > 0 && item.amount > 0;
+}
+
 export function OnboardingWizard({
   categories,
   initialOpeningBalance,
@@ -90,42 +110,108 @@ export function OnboardingWizard({
         category.type === "EXPENSE" && category.ledgerColumn === "EXPENSE",
     )?.id ?? categories.find((category) => category.type === "EXPENSE")?.id;
 
+  const syncFixedBills = async (): Promise<boolean> => {
+    if (!expenseCategoryId) {
+      appToast.error(copy.toast.genericError);
+      return false;
+    }
+
+    const nextBills: FixedBillDraft[] = [];
+
+    for (const bill of fixedBills) {
+      if (!isValidBill(bill)) {
+        if (bill.recurringId) {
+          const result = await deleteRecurringAction(bill.recurringId);
+          if (!result.success) {
+            appToast.error(result.error ?? copy.toast.genericError);
+            return false;
+          }
+        }
+        nextBills.push({ ...bill, recurringId: undefined });
+        continue;
+      }
+
+      const payload = {
+        type: "EXPENSE" as const,
+        categoryId: expenseCategoryId,
+        amount: bill.amount,
+        description: bill.name.trim(),
+        dayOfMonth: Number(bill.dayOfMonth),
+      };
+
+      if (bill.recurringId) {
+        const result = await updateRecurringAction({
+          id: bill.recurringId,
+          ...payload,
+        });
+        if (!result.success) {
+          appToast.error(result.error ?? copy.toast.genericError);
+          return false;
+        }
+        nextBills.push(bill);
+      } else {
+        const result = await createRecurringAction(payload);
+        if (!result.success || !result.data) {
+          appToast.error(result.error ?? copy.toast.genericError);
+          return false;
+        }
+        nextBills.push({ ...bill, recurringId: result.data.id });
+      }
+    }
+
+    setFixedBills(nextBills);
+    return true;
+  };
+
+  const syncDailyItems = async (): Promise<boolean> => {
+    const nextItems: DailyItemDraft[] = [];
+
+    for (const item of dailyItems) {
+      if (!isValidDailyItem(item)) {
+        if (item.expenseId) {
+          const result = await deleteFixedExpenseAction(item.expenseId);
+          if (!result.success) {
+            appToast.error(result.error ?? copy.toast.genericError);
+            return false;
+          }
+        }
+        nextItems.push({ ...item, expenseId: undefined });
+        continue;
+      }
+
+      const result = await upsertFixedExpenseAction({
+        id: item.expenseId,
+        name: item.name.trim(),
+        amount: item.amount,
+      });
+      if (!result.success || !result.data) {
+        appToast.error(result.error ?? copy.toast.genericError);
+        return false;
+      }
+      nextItems.push({ ...item, expenseId: result.data.id });
+    }
+
+    setDailyItems(nextItems);
+    return true;
+  };
+
   const saveStep = async (currentStep: number): Promise<boolean> => {
     if (currentStep === 1) {
       const result = await updateUserSettingsAction({
         openingBalance,
       });
-      if (!result.success) return false;
+      if (!result.success) {
+        appToast.error(result.error ?? copy.toast.genericError);
+        return false;
+      }
     }
 
     if (currentStep === 2) {
-      const bills = fixedBills.filter(
-        (bill) => bill.name.trim() && bill.amount > 0,
-      );
-      for (const bill of bills) {
-        if (!expenseCategoryId) continue;
-        const result = await createRecurringAction({
-          type: "EXPENSE",
-          categoryId: expenseCategoryId,
-          amount: bill.amount,
-          description: bill.name.trim(),
-          dayOfMonth: Number(bill.dayOfMonth),
-        });
-        if (!result.success) return false;
-      }
+      return syncFixedBills();
     }
 
     if (currentStep === 3) {
-      const items = dailyItems.filter(
-        (item) => item.name.trim() && item.amount > 0,
-      );
-      for (const item of items) {
-        const result = await upsertFixedExpenseAction({
-          name: item.name.trim(),
-          amount: item.amount,
-        });
-        if (!result.success) return false;
-      }
+      return syncDailyItems();
     }
 
     if (currentStep === 4) {
@@ -133,7 +219,10 @@ export function OnboardingWizard({
         cardClosingDay: Number(cardClosingDay),
         cardDueDay: Number(cardDueDay),
       });
-      if (!result.success) return false;
+      if (!result.success) {
+        appToast.error(result.error ?? copy.toast.genericError);
+        return false;
+      }
     }
 
     return true;
@@ -146,7 +235,10 @@ export function OnboardingWizard({
 
       if (step >= TOTAL_STEPS) {
         const result = await completeOnboardingAction();
-        if (!result.success) return;
+        if (!result.success) {
+          appToast.error(result.error ?? copy.toast.genericError);
+          return;
+        }
         router.push("/saldos");
         router.refresh();
         return;
@@ -161,6 +253,34 @@ export function OnboardingWizard({
   const handleSkip = () => {
     startTransition(async () => {
       await skipOnboardingAction();
+    });
+  };
+
+  const removeFixedBill = (billId: string) => {
+    startTransition(async () => {
+      const bill = fixedBills.find((item) => item.id === billId);
+      if (bill?.recurringId) {
+        const result = await deleteRecurringAction(bill.recurringId);
+        if (!result.success) {
+          appToast.error(result.error ?? copy.toast.genericError);
+          return;
+        }
+      }
+      setFixedBills((current) => current.filter((item) => item.id !== billId));
+    });
+  };
+
+  const removeDailyItem = (itemId: string) => {
+    startTransition(async () => {
+      const item = dailyItems.find((row) => row.id === itemId);
+      if (item?.expenseId) {
+        const result = await deleteFixedExpenseAction(item.expenseId);
+        if (!result.success) {
+          appToast.error(result.error ?? copy.toast.genericError);
+          return;
+        }
+      }
+      setDailyItems((current) => current.filter((row) => row.id !== itemId));
     });
   };
 
@@ -220,6 +340,7 @@ export function OnboardingWizard({
                   id="opening-balance"
                   value={openingBalance}
                   onValueChange={setOpeningBalance}
+                  className="max-w-xs"
                 />
               </div>
             </>
@@ -238,65 +359,119 @@ export function OnboardingWizard({
                   {copy.onboarding.stepFixedExamples}
                 </p>
               </div>
-              <div className="space-y-3">
-                {fixedBills.map((bill) => (
+
+              <div className="space-y-2">
+                {fixedBills.length > 0 ? (
                   <div
-                    key={bill.id}
-                    className="grid gap-3 rounded-lg border p-3 sm:grid-cols-[1fr_120px_80px]"
+                    className="hidden gap-3 px-1 text-xs font-medium text-muted-foreground sm:grid sm:grid-cols-[minmax(0,1fr)_140px_72px_36px]"
+                    aria-hidden
                   >
-                    <div className="space-y-1">
-                      <Label>{copy.onboarding.stepFixedName}</Label>
-                      <Input
-                        value={bill.name}
-                        onChange={(event) =>
-                          setFixedBills((current) =>
-                            current.map((item) =>
-                              item.id === bill.id
-                                ? { ...item, name: event.target.value }
-                                : item,
-                            ),
-                          )
-                        }
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>{copy.onboarding.stepFixedAmount}</Label>
-                      <MoneyInput
-                        value={bill.amount}
-                        onValueChange={(amount) =>
-                          setFixedBills((current) =>
-                            current.map((item) =>
-                              item.id === bill.id ? { ...item, amount } : item,
-                            ),
-                          )
-                        }
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <Label>{copy.onboarding.stepFixedDay}</Label>
-                      <Input
-                        type="number"
-                        min={1}
-                        max={31}
-                        value={bill.dayOfMonth}
-                        onChange={(event) =>
-                          setFixedBills((current) =>
-                            current.map((item) =>
-                              item.id === bill.id
-                                ? { ...item, dayOfMonth: event.target.value }
-                                : item,
-                            ),
-                          )
-                        }
-                      />
-                    </div>
+                    <span>{copy.onboarding.stepFixedName}</span>
+                    <span>{copy.onboarding.stepFixedAmount}</span>
+                    <span>{copy.onboarding.stepFixedDayShort}</span>
+                    <span />
                   </div>
-                ))}
+                ) : null}
+
+                {fixedBills.length === 0 ? (
+                  <p className="rounded-lg border border-dashed bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
+                    {copy.onboarding.stepFixedEmpty}
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {fixedBills.map((bill) => (
+                      <div
+                        key={bill.id}
+                        className="grid gap-3 rounded-lg border bg-muted/20 p-3 sm:grid-cols-[minmax(0,1fr)_140px_72px_36px] sm:items-end"
+                      >
+                        <div className="space-y-1.5">
+                          <Label className="sm:sr-only">
+                            {copy.onboarding.stepFixedName}
+                          </Label>
+                          <Input
+                            value={bill.name}
+                            placeholder="Aluguel"
+                            onChange={(event) =>
+                              setFixedBills((current) =>
+                                current.map((item) =>
+                                  item.id === bill.id
+                                    ? { ...item, name: event.target.value }
+                                    : item,
+                                ),
+                              )
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="sm:sr-only">
+                            {copy.onboarding.stepFixedAmount}
+                          </Label>
+                          <MoneyInput
+                            value={bill.amount}
+                            onValueChange={(amount) =>
+                              setFixedBills((current) =>
+                                current.map((item) =>
+                                  item.id === bill.id ? { ...item, amount } : item,
+                                ),
+                              )
+                            }
+                          />
+                        </div>
+                        <div className="flex items-end gap-2 sm:block sm:space-y-1.5">
+                          <div className="min-w-0 flex-1 space-y-1.5 sm:flex-none">
+                            <Label className="sm:sr-only">
+                              {copy.onboarding.stepFixedDayShort}
+                            </Label>
+                            <Input
+                              type="number"
+                              min={1}
+                              max={31}
+                              value={bill.dayOfMonth}
+                              onChange={(event) =>
+                                setFixedBills((current) =>
+                                  current.map((item) =>
+                                    item.id === bill.id
+                                      ? { ...item, dayOfMonth: event.target.value }
+                                      : item,
+                                  ),
+                                )
+                              }
+                            />
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="shrink-0 text-muted-foreground hover:text-destructive sm:hidden"
+                            aria-label={copy.onboarding.stepFixedRemove}
+                            disabled={isPending}
+                            onClick={() => removeFixedBill(bill.id)}
+                          >
+                            <Trash2 className="size-4" />
+                          </Button>
+                        </div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="hidden shrink-0 text-muted-foreground hover:text-destructive sm:inline-flex"
+                          aria-label={copy.onboarding.stepFixedRemove}
+                          disabled={isPending}
+                          onClick={() => removeFixedBill(bill.id)}
+                        >
+                          <Trash2 className="size-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
+
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
+                disabled={isPending}
                 onClick={() =>
                   setFixedBills((current) => [
                     ...current,
@@ -309,6 +484,7 @@ export function OnboardingWizard({
                   ])
                 }
               >
+                <Plus className="size-4" />
                 {copy.onboarding.stepFixedAdd}
               </Button>
               <p className="text-xs text-muted-foreground">
@@ -330,47 +506,70 @@ export function OnboardingWizard({
                   {copy.onboarding.stepDailyExamples}
                 </p>
               </div>
-              <div className="space-y-3">
-                {dailyItems.map((item) => (
-                  <div
-                    key={item.id}
-                    className="grid gap-3 rounded-lg border p-3 sm:grid-cols-2"
-                  >
-                    <div className="space-y-1">
-                      <Label>{copy.onboarding.stepDailyName}</Label>
-                      <Input
-                        value={item.name}
-                        onChange={(event) =>
-                          setDailyItems((current) =>
-                            current.map((row) =>
-                              row.id === item.id
-                                ? { ...row, name: event.target.value }
-                                : row,
-                            ),
-                          )
-                        }
-                      />
+
+              {dailyItems.length === 0 ? (
+                <p className="rounded-lg border border-dashed bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
+                  {copy.onboarding.stepDailyEmpty}
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {dailyItems.map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex gap-3 rounded-lg border bg-muted/20 p-3"
+                    >
+                      <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
+                        <div className="space-y-1.5">
+                          <Label>{copy.onboarding.stepDailyName}</Label>
+                          <Input
+                            value={item.name}
+                            placeholder="Mercado"
+                            onChange={(event) =>
+                              setDailyItems((current) =>
+                                current.map((row) =>
+                                  row.id === item.id
+                                    ? { ...row, name: event.target.value }
+                                    : row,
+                                ),
+                              )
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label>{copy.onboarding.stepDailyAmount}</Label>
+                          <MoneyInput
+                            value={item.amount}
+                            onValueChange={(amount) =>
+                              setDailyItems((current) =>
+                                current.map((row) =>
+                                  row.id === item.id ? { ...row, amount } : row,
+                                ),
+                              )
+                            }
+                          />
+                        </div>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="mt-6 shrink-0 self-start text-muted-foreground hover:text-destructive sm:mt-7"
+                        aria-label={copy.onboarding.stepDailyRemove}
+                        disabled={isPending}
+                        onClick={() => removeDailyItem(item.id)}
+                      >
+                        <Trash2 className="size-4" />
+                      </Button>
                     </div>
-                    <div className="space-y-1">
-                      <Label>{copy.onboarding.stepDailyAmount}</Label>
-                      <MoneyInput
-                        value={item.amount}
-                        onValueChange={(amount) =>
-                          setDailyItems((current) =>
-                            current.map((row) =>
-                              row.id === item.id ? { ...row, amount } : row,
-                            ),
-                          )
-                        }
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
+
               <Button
                 type="button"
                 variant="outline"
                 size="sm"
+                disabled={isPending}
                 onClick={() =>
                   setDailyItems((current) => [
                     ...current,
@@ -378,6 +577,7 @@ export function OnboardingWizard({
                   ])
                 }
               >
+                <Plus className="size-4" />
                 {copy.onboarding.stepDailyAdd}
               </Button>
               <p className="text-xs text-muted-foreground">

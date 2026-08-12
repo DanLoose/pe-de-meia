@@ -128,9 +128,9 @@ export function RecurringManager({
       });
 
       if (form.id) {
-        appToast.recurringUpdated();
+        appToast.fixedExpenseUpdated();
       } else {
-        appToast.recurringCreated();
+        appToast.fixedExpenseCreated();
       }
 
       setFormOpen(false);
@@ -149,7 +149,7 @@ export function RecurringManager({
         return;
       }
       setItems((current) => current.filter((item) => item.id !== id));
-      appToast.recurringDeleted();
+      appToast.fixedExpenseDeleted();
     });
   };
 
@@ -163,7 +163,7 @@ export function RecurringManager({
       setItems((current) =>
         current.map((item) => (item.id === id ? result.data! : item)),
       );
-      appToast.recurringUpdated();
+      appToast.fixedExpenseUpdated();
     });
   };
 
@@ -172,12 +172,12 @@ export function RecurringManager({
       <>
         <EmptyState
           icon={Repeat}
-          title={copy.recurring.empty}
-          description={copy.recurring.subtitle}
+          title={copy.fixedExpenses.empty}
+          description={copy.fixedExpenses.subtitle}
           action={
             <Button onClick={openCreate}>
               <Plus className="size-4" />
-              {copy.recurring.new}
+              {copy.fixedExpenses.new}
             </Button>
           }
         />
@@ -200,7 +200,7 @@ export function RecurringManager({
       <div className="mb-4 flex justify-end">
         <Button onClick={openCreate}>
           <Plus className="size-4" />
-          {copy.recurring.new}
+          {copy.fixedExpenses.new}
         </Button>
       </div>
 
@@ -226,7 +226,7 @@ export function RecurringManager({
                     {item.categoryName}
                   </Badge>
                   <Badge variant={item.active ? "default" : "secondary"}>
-                    {item.active ? copy.recurring.active : copy.recurring.inactive}
+                    {item.active ? copy.fixedExpenses.active : copy.fixedExpenses.inactive}
                   </Badge>
                 </div>
                 <p
@@ -251,13 +251,13 @@ export function RecurringManager({
                 className="flex-1"
                 onClick={() => toggleActive(item.id, !item.active)}
               >
-                {item.active ? copy.recurring.inactive : copy.recurring.active}
+                {item.active ? copy.fixedExpenses.inactive : copy.fixedExpenses.active}
               </Button>
               <Button
                 variant="ghost"
                 size="icon"
                 className="size-9"
-                aria-label={copy.recurring.edit}
+                aria-label={copy.fixedExpenses.edit}
                 onClick={() => openEdit(item)}
               >
                 <Pencil className="size-4" />
@@ -293,10 +293,10 @@ export function RecurringManager({
       >
         <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>{copy.recurring.deleteTitle}</DialogTitle>
+            <DialogTitle>{copy.fixedExpenses.deleteTitle}</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            {copy.recurring.deleteDescription}
+            {copy.fixedExpenses.deleteDescription}
           </p>
           <DialogFooter>
             <Button variant="outline" onClick={() => setPendingDeleteId(null)}>
@@ -336,7 +336,7 @@ function RecurringFormDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
-            {form.id ? copy.recurring.edit : copy.recurring.new}
+            {form.id ? copy.fixedExpenses.edit : copy.fixedExpenses.new}
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
@@ -376,7 +376,7 @@ function RecurringFormDialog({
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="recurring-day">{copy.recurring.dayOfMonth}</Label>
+            <Label htmlFor="recurring-day">{copy.fixedExpenses.dayOfMonth}</Label>
             <Input
               id="recurring-day"
               type="number"

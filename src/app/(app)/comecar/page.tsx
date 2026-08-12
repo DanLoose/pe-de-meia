@@ -17,7 +17,7 @@ export default async function ComecarPage() {
     getCategoriesByUser(session.user.id),
   ]);
 
-  if (!status.needsOnboarding) {
+  if (status.wizardCompleted) {
     redirect("/saldos");
   }
 

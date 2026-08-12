@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Calculator, ChevronRight, CreditCard, Settings, User } from "lucide-react";
+import { ChevronRight, CreditCard, Settings, User } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,7 +23,6 @@ function subscriptionLabel(status: string) {
 
 const links = [
   { href: "/menu/perfil", label: copy.menu.profile, icon: User },
-  { href: "/menu/previsao-diario", label: copy.menu.forecast, icon: Calculator },
   {
     href: "/menu/configuracoes",
     label: copy.menu.card,

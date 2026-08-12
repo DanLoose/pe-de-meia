@@ -2,19 +2,26 @@ import { expect, test } from "@playwright/test";
 import { copy } from "../src/lib/copy";
 import { loginAsDemo } from "./helpers";
 
-test.describe("Previsão de diário", () => {
+test.describe("Orçamento diário", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsDemo(page);
   });
 
-  test("shows domain-aligned intro and budget labels", async ({ page }) => {
-    await page.goto("/menu/previsao-diario");
+  test("shows budget section under Gastos fixos", async ({ page }) => {
+    await page.goto("/gastos-fixos/orcamento-diario");
     await expect(
-      page.getByRole("heading", { name: copy.forecast.title }),
+      page.getByRole("heading", { name: copy.gastosFixos.title }),
     ).toBeVisible();
-    await expect(page.getByText(copy.forecast.intro)).toBeVisible();
-    await expect(page.getByText(copy.forecast.subtitle)).toBeVisible();
-    await expect(page.getByText(copy.forecast.monthlyExpenses)).toBeVisible();
-    await expect(page.getByText(copy.forecast.dailyCeiling)).toBeVisible();
+    await expect(
+      page.getByRole("tab", { name: copy.gastosFixos.tabDailyBudget }),
+    ).toHaveAttribute("aria-selected", "true");
+    await expect(page.getByText(copy.dailyBudget.intro)).toBeVisible();
+    await expect(page.getByText(copy.dailyBudget.monthlyExpenses)).toBeVisible();
+    await expect(page.getByText(copy.dailyBudget.dailyCeiling)).toBeVisible();
+  });
+
+  test("redirects legacy previsao route", async ({ page }) => {
+    await page.goto("/menu/previsao-diario");
+    await expect(page).toHaveURL(/\/gastos-fixos\/orcamento-diario$/);
   });
 });

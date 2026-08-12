@@ -29,6 +29,7 @@ function revalidateFinancePaths() {
   revalidatePath("/horizonte");
   revalidatePath("/calendario");
   revalidatePath("/calendar");
+  revalidatePath("/gastos-fixos");
   revalidatePath("/recorrentes");
   revalidatePath("/recurring");
 }

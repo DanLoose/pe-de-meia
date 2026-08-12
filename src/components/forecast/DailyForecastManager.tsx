@@ -90,7 +90,7 @@ export function DailyForecastManager({ initialData }: DailyForecastManagerProps)
         };
       });
       setFormOpen(false);
-      appToast.success(copy.forecast.saved);
+      appToast.success(copy.dailyBudget.saved);
     });
   };
 
@@ -111,7 +111,7 @@ export function DailyForecastManager({ initialData }: DailyForecastManagerProps)
           dailyCeiling: totalFixed / current.dailyDivisor,
         };
       });
-      appToast.success(copy.forecast.deleted);
+      appToast.success(copy.dailyBudget.deleted);
     });
   };
 
@@ -133,17 +133,17 @@ export function DailyForecastManager({ initialData }: DailyForecastManagerProps)
 
   return (
     <div className="w-full space-y-6">
-      <p className="text-sm text-muted-foreground">{copy.forecast.intro}</p>
+      <p className="text-sm text-muted-foreground">{copy.dailyBudget.intro}</p>
 
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-sm font-medium lowercase text-muted-foreground">
-          {copy.forecast.monthlyExpenses}
+          {copy.dailyBudget.monthlyExpenses}
         </h2>
         <Button
           variant="ghost"
           size="icon"
           className="size-8"
-          aria-label={copy.forecast.addExpense}
+          aria-label={copy.dailyBudget.addExpense}
           onClick={openCreate}
         >
           <Plus className="size-4" />
@@ -153,7 +153,7 @@ export function DailyForecastManager({ initialData }: DailyForecastManagerProps)
       <div className="overflow-hidden rounded-xl border bg-card">
         {data.expenses.length === 0 ? (
           <p className="px-4 py-6 text-sm text-muted-foreground">
-            {copy.forecast.empty}
+            {copy.dailyBudget.empty}
           </p>
         ) : (
           <div className="divide-y">
@@ -173,7 +173,7 @@ export function DailyForecastManager({ initialData }: DailyForecastManagerProps)
                         variant="ghost"
                         size="icon"
                         className="size-8"
-                        aria-label={copy.forecast.rowMenu}
+                        aria-label={copy.dailyBudget.rowMenu}
                       />
                     }
                   >
@@ -182,7 +182,7 @@ export function DailyForecastManager({ initialData }: DailyForecastManagerProps)
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem onClick={() => openEdit(expense)}>
                       <Pencil />
-                      {copy.forecast.edit}
+                      {copy.dailyBudget.edit}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       variant="destructive"
@@ -190,7 +190,7 @@ export function DailyForecastManager({ initialData }: DailyForecastManagerProps)
                       disabled={isPending}
                     >
                       <Trash2 />
-                      {copy.forecast.delete}
+                      {copy.dailyBudget.delete}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -203,13 +203,13 @@ export function DailyForecastManager({ initialData }: DailyForecastManagerProps)
       <div className="space-y-3 border-t pt-4">
         <div className="flex items-center justify-between gap-3 text-sm">
           <span className="lowercase text-muted-foreground">
-            {copy.forecast.monthlyTotal}
+            {copy.dailyBudget.monthlyTotal}
           </span>
           <span className="tabular-nums">{formatCurrency(data.totalFixed)}</span>
         </div>
         <div className="flex items-center justify-between gap-3 text-sm">
           <span className="lowercase text-muted-foreground">
-            {copy.forecast.dividedBy}
+            {copy.dailyBudget.dividedBy}
           </span>
           <Select
             value={String(data.dailyDivisor)}
@@ -218,12 +218,12 @@ export function DailyForecastManager({ initialData }: DailyForecastManagerProps)
             }}
           >
             <SelectTrigger className="h-8 w-auto rounded-full px-3">
-              <span>{copy.forecast.days(data.dailyDivisor)}</span>
+              <span>{copy.dailyBudget.days(data.dailyDivisor)}</span>
             </SelectTrigger>
             <SelectContent>
               {DIVISOR_OPTIONS.map((option) => (
                 <SelectItem key={option} value={String(option)}>
-                  {copy.forecast.days(option)}
+                  {copy.dailyBudget.days(option)}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -232,7 +232,7 @@ export function DailyForecastManager({ initialData }: DailyForecastManagerProps)
         <div className="flex items-center justify-end border-t pt-4">
           <div className="text-right">
             <p className="text-xs lowercase text-muted-foreground">
-              {copy.forecast.dailyCeiling}
+              {copy.dailyBudget.dailyCeiling}
             </p>
             <p className="text-2xl font-semibold tabular-nums">
               {formatCurrency(data.dailyCeiling)}
@@ -245,28 +245,28 @@ export function DailyForecastManager({ initialData }: DailyForecastManagerProps)
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {editing ? copy.forecast.editExpense : copy.forecast.newExpense}
+              {editing ? copy.dailyBudget.editExpense : copy.dailyBudget.newExpense}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="expense-name">{copy.forecast.name}</Label>
+              <Label htmlFor="expense-name">{copy.dailyBudget.name}</Label>
               <Input
                 id="expense-name"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder={copy.forecast.examples}
+                placeholder={copy.dailyBudget.examples}
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="expense-amount">{copy.forecast.amount}</Label>
+              <Label htmlFor="expense-amount">{copy.dailyBudget.amount}</Label>
               <MoneyInput
                 id="expense-amount"
                 value={amount}
                 onValueChange={setAmount}
               />
               <p className="text-xs text-muted-foreground">
-                {copy.forecast.amountHint}
+                {copy.dailyBudget.amountHint}
               </p>
             </div>
           </div>

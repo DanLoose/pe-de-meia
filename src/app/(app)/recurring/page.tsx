@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
 
-export default function RecurringRedirect() {
-  redirect("/recorrentes");
+export default function RecurringRedirectPage() {
+  redirect("/gastos-fixos");
 }

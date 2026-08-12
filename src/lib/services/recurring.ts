@@ -1,7 +1,11 @@
 import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { defaultAffectsBalance } from "@/lib/cash";
-import { parseDateOnly } from "@/lib/dates";
+import {
+  defaultRecurringStartsOn,
+  formatDateOnly,
+  parseDateOnly,
+} from "@/lib/dates";
 import { resolveLedgerColumn } from "@/lib/ledger-columns";
 import { resolveCardInvoiceId } from "@/lib/services/card";
 import {
@@ -15,6 +19,14 @@ function toNumber(value: Prisma.Decimal): number {
   return Number(value.toString());
 }
 
+function resolveStartsOn(dayOfMonth: number, startsOn?: string): Date {
+  return startsOn ? parseDateOnly(startsOn) : defaultRecurringStartsOn(dayOfMonth);
+}
+
+function resolveEndsOn(endsOn?: string | null): Date | null {
+  return endsOn ? parseDateOnly(endsOn) : null;
+}
+
 function toRecurringDTO(
   recurring: Prisma.RecurringTransactionGetPayload<{ include: { category: true } }>,
 ): RecurringTransactionDTO {
@@ -24,6 +36,8 @@ function toRecurringDTO(
     amount: toNumber(recurring.amount),
     description: recurring.description,
     dayOfMonth: recurring.dayOfMonth,
+    startsOn: formatDateOnly(recurring.startsOn),
+    endsOn: recurring.endsOn ? formatDateOnly(recurring.endsOn) : null,
     active: recurring.active,
     categoryId: recurring.categoryId,
     categoryName: recurring.category.name,
@@ -64,6 +78,8 @@ export async function createRecurring(
       amount: data.amount,
       description: data.description?.trim() || null,
       dayOfMonth: data.dayOfMonth,
+      startsOn: resolveStartsOn(data.dayOfMonth, data.startsOn),
+      endsOn: resolveEndsOn(data.endsOn),
     },
     include: { category: true },
   });
@@ -99,6 +115,10 @@ export async function updateRecurring(
       amount: data.amount,
       description: data.description?.trim() || null,
       dayOfMonth: data.dayOfMonth,
+      ...(data.startsOn !== undefined
+        ? { startsOn: resolveStartsOn(data.dayOfMonth, data.startsOn) }
+        : {}),
+      ...(data.endsOn !== undefined ? { endsOn: resolveEndsOn(data.endsOn) } : {}),
       ...(data.active !== undefined ? { active: data.active } : {}),
     },
     include: { category: true },
@@ -138,18 +158,27 @@ export async function ensureRecurringTransactions(
   const end = parseDateOnly(endDate);
 
   for (const rule of rules) {
-    let year = start.getUTCFullYear();
-    let month = start.getUTCMonth();
+    const ruleStart = rule.startsOn;
+    const ruleEnd = rule.endsOn;
+    const effectiveStart = ruleStart > start ? ruleStart : start;
+    const effectiveEnd = ruleEnd && ruleEnd < end ? ruleEnd : end;
 
-    const endYear = end.getUTCFullYear();
-    const endMonth = end.getUTCMonth();
+    if (effectiveStart > effectiveEnd) {
+      continue;
+    }
+
+    let year = effectiveStart.getUTCFullYear();
+    let month = effectiveStart.getUTCMonth();
+
+    const endYear = effectiveEnd.getUTCFullYear();
+    const endMonth = effectiveEnd.getUTCMonth();
 
     while (year < endYear || (year === endYear && month <= endMonth)) {
       const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
       const day = Math.min(rule.dayOfMonth, lastDay);
       const date = new Date(Date.UTC(year, month, day));
 
-      if (date >= start && date <= end) {
+      if (date >= effectiveStart && date <= effectiveEnd) {
         const existing = await prisma.transaction.findFirst({
           where: { recurringId: rule.id, date },
         });

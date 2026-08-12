@@ -1,10 +1,16 @@
 import { z } from "zod";
 import { createTransactionSchema } from "@/lib/validators/transaction";
 
+const dateOnlySchema = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format");
+
 export const createRecurringSchema = createTransactionSchema
   .omit({ date: true, recurring: true })
   .extend({
     dayOfMonth: z.coerce.number().int().min(1).max(31),
+    startsOn: dateOnlySchema.optional(),
+    endsOn: dateOnlySchema.optional().nullable(),
   });
 
 export const updateRecurringSchema = createRecurringSchema.extend({
