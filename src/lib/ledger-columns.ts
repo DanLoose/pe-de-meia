@@ -20,6 +20,27 @@ export function defaultTypeForLedgerColumn(
   return column === "INCOME" || column === "SAVINGS" ? "INCOME" : "EXPENSE";
 }
 
+export const LEDGER_COLUMNS: LedgerColumn[] = [
+  "INCOME",
+  "EXPENSE",
+  "DAILY",
+  "SAVINGS",
+  "CARD",
+];
+
+export type LedgerColumnVariant =
+  | "income"
+  | "expense"
+  | "daily"
+  | "savings"
+  | "card";
+
+export function ledgerColumnVariant(
+  column: LedgerColumn,
+): LedgerColumnVariant {
+  return column.toLowerCase() as LedgerColumnVariant;
+}
+
 export const LEDGER_COLUMN_LABELS: Record<LedgerColumn, string> = {
   INCOME: "Entradas",
   EXPENSE: "Saídas",

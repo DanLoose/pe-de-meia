@@ -4,11 +4,14 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   ChevronLeft,
   ChevronRight,
+  EllipsisVertical,
+  ListFilter,
   Loader2,
   Pencil,
   Plus,
   Trash2,
   Wallet,
+  X,
 } from "lucide-react";
 import {
   createTransactionAction,
@@ -17,8 +20,14 @@ import {
   updateTransactionAction,
 } from "@/app/actions/transactions";
 import { EntryForm } from "@/components/entries/EntryForm";
-import { Badge } from "@/components/ui/badge";
+import { ColumnGlyph } from "@/components/ledger/LedgerCells";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -34,9 +43,9 @@ import {
   SelectItem,
   SelectTrigger,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetDescription,
   SheetHeader,
@@ -44,21 +53,21 @@ import {
 } from "@/components/ui/sheet";
 import { copy } from "@/lib/copy";
 import { balanceClass, expenseClass, incomeClass } from "@/lib/design";
-import { formatCurrency, formatDateLabel } from "@/lib/format";
+import {
+  formatCompactDateLabel,
+  formatCurrency,
+  formatDateLabel,
+  formatNumericDateLabel,
+} from "@/lib/format";
 import {
   defaultTypeForLedgerColumn,
   LEDGER_COLUMN_LABELS,
+  LEDGER_COLUMNS,
+  ledgerColumnVariant,
 } from "@/lib/ledger-columns";
 import { appToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-import type {
-  CategoryDTO,
-  LedgerColumn,
-  TransactionDTO,
-  TransactionType,
-} from "@/types";
-
-type TypeFilter = "ALL" | TransactionType;
+import type { CategoryDTO, LedgerColumn, TransactionDTO } from "@/types";
 
 interface LedgerDaySheetProps {
   open: boolean;
@@ -69,6 +78,7 @@ interface LedgerDaySheetProps {
   onNavigate: (date: string) => void;
   monthDates: string[];
   ledgerColumn?: LedgerColumn | null;
+  onColumnChange?: (column: LedgerColumn | null) => void;
 }
 
 export function LedgerDaySheet({
@@ -80,9 +90,9 @@ export function LedgerDaySheet({
   onNavigate,
   monthDates,
   ledgerColumn = null,
+  onColumnChange,
 }: LedgerDaySheetProps) {
   const [transactions, setTransactions] = useState<TransactionDTO[]>([]);
-  const [typeFilter, setTypeFilter] = useState<TypeFilter>("ALL");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<TransactionDTO | null>(null);
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
@@ -92,14 +102,9 @@ export function LedgerDaySheet({
 
   const isColumnScoped = Boolean(ledgerColumn);
   const isLoading = Boolean(open && date && loadedDate !== date);
-  const columnLabel = ledgerColumn
-    ? LEDGER_COLUMN_LABELS[ledgerColumn]
-    : null;
   const createDefaultType = ledgerColumn
     ? defaultTypeForLedgerColumn(ledgerColumn)
     : undefined;
-  const columnIsPositive =
-    ledgerColumn === "INCOME" || ledgerColumn === "SAVINGS";
 
   useEffect(() => {
     if (!open || !date) return;
@@ -126,21 +131,11 @@ export function LedgerDaySheet({
   }, [open, date]);
 
   const filtered = useMemo(() => {
-    let next = transactions;
-    if (ledgerColumn) {
-      next = next.filter((tx) => tx.ledgerColumn === ledgerColumn);
-    } else if (typeFilter !== "ALL") {
-      next = next.filter((tx) => tx.type === typeFilter);
-    }
-    return next;
-  }, [transactions, typeFilter, ledgerColumn]);
+    if (!ledgerColumn) return transactions;
+    return transactions.filter((tx) => tx.ledgerColumn === ledgerColumn);
+  }, [transactions, ledgerColumn]);
 
   const totals = useMemo(() => {
-    if (ledgerColumn) {
-      const total = filtered.reduce((sum, tx) => sum + tx.amount, 0);
-      return { income: 0, expense: 0, net: 0, column: total };
-    }
-
     return filtered.reduce(
       (acc, transaction) => {
         if (transaction.type === "INCOME") {
@@ -151,9 +146,16 @@ export function LedgerDaySheet({
         acc.net = acc.income - acc.expense;
         return acc;
       },
-      { income: 0, expense: 0, net: 0, column: 0 },
+      { income: 0, expense: 0, net: 0 },
     );
-  }, [filtered, ledgerColumn]);
+  }, [filtered]);
+
+  const handleColumnChange = (value: string | null) => {
+    if (!value) return;
+    setFormOpen(false);
+    setEditing(null);
+    onColumnChange?.(value === "ALL" ? null : (value as LedgerColumn));
+  };
 
   const dateIndex = date ? monthDates.indexOf(date) : -1;
   const canGoPrev = dateIndex > 0;
@@ -222,66 +224,65 @@ export function LedgerDaySheet({
 
   return (
     <>
-      <Sheet
-        open={open}
-        onOpenChange={(nextOpen) => {
-          if (!nextOpen) setTypeFilter("ALL");
-          onOpenChange(nextOpen);
-        }}
-      >
-        <SheetContent className="flex w-full flex-col gap-5 p-6 sm:max-w-md">
-          <SheetHeader className="p-0 pr-8">
-            <div className="flex items-center justify-between gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                aria-label={copy.ledger.prevDay}
-                disabled={!canGoPrev}
-                onClick={() => navigateDay(-1)}
+      <Sheet open={open} onOpenChange={onOpenChange}>
+        <SheetContent
+          showCloseButton={false}
+          className="flex w-full flex-col gap-5 p-6 sm:max-w-md"
+        >
+          <SheetHeader className="p-0">
+            <div className="flex items-center gap-1">
+              <SheetClose
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label={copy.daySheet.close}
+                  />
+                }
               >
-                <ChevronLeft className="size-4" />
-              </Button>
-              <div className="text-center">
-                <SheetTitle>
-                  {columnLabel
-                    ? columnLabel
-                    : date
-                      ? formatDateLabel(date)
-                      : copy.daySheet.titleFallback}
-                </SheetTitle>
-                <SheetDescription>
-                  {isColumnScoped
-                    ? date
-                      ? `${formatDateLabel(date)} · ${copy.daySheet.columnDescription}`
-                      : copy.daySheet.columnDescription
-                    : copy.daySheet.description}
-                </SheetDescription>
+                <X className="size-4" />
+              </SheetClose>
+              <div className="flex min-w-0 flex-1 items-center justify-center gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={copy.ledger.prevDay}
+                  disabled={!canGoPrev}
+                  onClick={() => navigateDay(-1)}
+                >
+                  <ChevronLeft className="size-4" />
+                </Button>
+                <div className="min-w-0 text-center">
+                  <SheetTitle className="text-sm whitespace-nowrap">
+                    {date ? formatCompactDateLabel(date) : copy.daySheet.titleFallback}
+                  </SheetTitle>
+                  <SheetDescription className="sr-only">
+                    {date ? formatDateLabel(date) : copy.daySheet.description}
+                  </SheetDescription>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={copy.ledger.nextDay}
+                  disabled={!canGoNext}
+                  onClick={() => navigateDay(1)}
+                >
+                  <ChevronRight className="size-4" />
+                </Button>
               </div>
               <Button
                 variant="ghost"
                 size="icon"
-                aria-label={copy.ledger.nextDay}
-                disabled={!canGoNext}
-                onClick={() => navigateDay(1)}
+                aria-label={copy.daySheet.addEntry}
+                onClick={openCreateForm}
+                disabled={!date}
               >
-                <ChevronRight className="size-4" />
+                <Plus className="size-4" />
               </Button>
             </div>
           </SheetHeader>
 
-          {isColumnScoped ? (
-            <div className="rounded-lg border p-3 text-sm">
-              <p className="text-muted-foreground">{copy.daySheet.columnTotal}</p>
-              <p
-                className={cn(
-                  "font-medium",
-                  columnIsPositive ? incomeClass() : expenseClass(),
-                )}
-              >
-                {formatCurrency(totals.column)}
-              </p>
-            </div>
-          ) : (
+          {!isColumnScoped && (
             <div className="grid grid-cols-3 gap-2 text-sm">
               <div className="rounded-lg border p-3">
                 <p className="text-muted-foreground">{copy.daySheet.income}</p>
@@ -304,36 +305,41 @@ export function LedgerDaySheet({
             </div>
           )}
 
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            {!isColumnScoped ? (
-              <Select
-                value={typeFilter}
-                onValueChange={(value) => setTypeFilter(value as TypeFilter)}
-              >
-                <SelectTrigger
-                  className="w-[160px]"
-                  aria-label={copy.ledger.filterType}
-                >
-                  <span>{copy.ledger.filterType}</span>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">{copy.ledger.filterAll}</SelectItem>
-                  <SelectItem value="INCOME">{copy.entry.income}</SelectItem>
-                  <SelectItem value="EXPENSE">{copy.entry.expense}</SelectItem>
-                </SelectContent>
-              </Select>
-            ) : (
-              <div />
-            )}
-            <Button size="sm" onClick={openCreateForm} disabled={!date}>
-              <Plus className="size-4" />
-              {copy.daySheet.addEntry}
-            </Button>
-          </div>
+          <Select
+            value={ledgerColumn ?? "ALL"}
+            onValueChange={handleColumnChange}
+          >
+            <SelectTrigger
+              className="h-10 w-full rounded-full px-3"
+              aria-label={copy.ledger.filterColumn}
+              data-testid="ledger-column-filter"
+            >
+              <span className="flex min-w-0 items-center gap-2">
+                <ListFilter className="size-4 text-muted-foreground" />
+                {ledgerColumn ? (
+                  <ColumnGlyph variant={ledgerColumnVariant(ledgerColumn)} />
+                ) : null}
+                <span className="truncate lowercase">
+                  {ledgerColumn
+                    ? LEDGER_COLUMN_LABELS[ledgerColumn]
+                    : copy.ledger.filterAll}
+                </span>
+              </span>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">{copy.ledger.filterAll}</SelectItem>
+              {LEDGER_COLUMNS.map((column) => (
+                <SelectItem key={column} value={column}>
+                  <span className="flex items-center gap-2">
+                    <ColumnGlyph variant={ledgerColumnVariant(column)} />
+                    {LEDGER_COLUMN_LABELS[column]}
+                  </span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-          <Separator />
-
-          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             {isLoading && transactions.length === 0 && (
               <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
                 <Loader2 className="size-4 animate-spin" />
@@ -354,75 +360,84 @@ export function LedgerDaySheet({
                 }
               />
             )}
-            {filtered.map((transaction) => (
-              <div
-                key={transaction.id}
-                data-testid={`entry-row-${transaction.id}`}
-                role="button"
-                tabIndex={0}
-                className="flex min-h-11 cursor-pointer items-start justify-between rounded-lg border p-3 transition-colors hover:bg-muted/50"
-                onClick={() => {
-                  setEditing(transaction);
-                  setFormOpen(true);
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    setEditing(transaction);
-                    setFormOpen(true);
-                  }
-                }}
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <Badge
-                      variant="outline"
-                      style={{ borderColor: transaction.categoryColor }}
-                    >
-                      {transaction.categoryName}
-                    </Badge>
-                    <span
-                      className={
-                        transaction.type === "INCOME"
-                          ? incomeClass()
-                          : expenseClass()
-                      }
-                    >
-                      {transaction.type === "INCOME" ? "+" : "-"}
-                      {formatCurrency(transaction.amount)}
-                    </span>
-                  </div>
-                  {transaction.description && (
-                    <p className="text-sm text-muted-foreground">
-                      {transaction.description}
-                    </p>
-                  )}
-                </div>
-                <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-9"
-                    aria-label={copy.daySheet.editEntry}
+            <div className="divide-y">
+              {filtered.map((transaction) => {
+                const variant = ledgerColumnVariant(transaction.ledgerColumn);
+                const title =
+                  transaction.description?.trim() || transaction.categoryName;
+
+                return (
+                  <div
+                    key={transaction.id}
+                    data-testid={`entry-row-${transaction.id}`}
+                    role="button"
+                    tabIndex={0}
+                    className="flex cursor-pointer items-center gap-3 py-3 transition-colors hover:bg-muted/40"
                     onClick={() => {
                       setEditing(transaction);
                       setFormOpen(true);
                     }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setEditing(transaction);
+                        setFormOpen(true);
+                      }
+                    }}
                   >
-                    <Pencil className="size-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="size-9"
-                    aria-label={copy.daySheet.deleteEntry}
-                    onClick={() => setPendingDeleteId(transaction.id)}
-                  >
-                    <Trash2 className="size-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
+                    <ColumnGlyph variant={variant} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">{title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatNumericDateLabel(transaction.date)}
+                      </p>
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <p className="font-medium tabular-nums">
+                        {formatCurrency(transaction.amount)}
+                      </p>
+                      <p className="text-xs text-muted-foreground lowercase">
+                        {LEDGER_COLUMN_LABELS[transaction.ledgerColumn]}
+                      </p>
+                    </div>
+                    <div onClick={(event) => event.stopPropagation()}>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="size-8"
+                              aria-label={copy.daySheet.rowMenu}
+                            />
+                          }
+                        >
+                          <EllipsisVertical className="size-4" />
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => {
+                              setEditing(transaction);
+                              setFormOpen(true);
+                            }}
+                          >
+                            <Pencil />
+                            {copy.daySheet.editEntry}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            variant="destructive"
+                            onClick={() => setPendingDeleteId(transaction.id)}
+                          >
+                            <Trash2 />
+                            {copy.daySheet.deleteEntry}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </SheetContent>
       </Sheet>
