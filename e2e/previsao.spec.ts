@@ -2,12 +2,12 @@ import { expect, test } from "@playwright/test";
 import { copy } from "../src/lib/copy";
 import { loginAsDemo } from "./helpers";
 
-test.describe("Orçamento diário", () => {
+test.describe("Gastos variáveis (estimativa)", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsDemo(page);
   });
 
-  test("shows budget section under Gastos fixos", async ({ page }) => {
+  test("shows estimate section under Compromissos", async ({ page }) => {
     await page.goto("/gastos-fixos/orcamento-diario");
     await expect(
       page.getByRole("heading", { name: copy.gastosFixos.title }),

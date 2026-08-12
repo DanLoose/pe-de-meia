@@ -20,7 +20,6 @@ export function SettingsForm({ settings }: SettingsFormProps) {
     startTransition(async () => {
       const result = await updateUserSettingsAction({
         openingBalance: Number(formData.get("openingBalance")),
-        dailyDivisor: Number(formData.get("dailyDivisor")),
         cardClosingDay: Number(formData.get("cardClosingDay")),
         cardDueDay: Number(formData.get("cardDueDay")),
       });
@@ -46,17 +45,6 @@ export function SettingsForm({ settings }: SettingsFormProps) {
         <p className="text-xs text-muted-foreground">
           {copy.settings.openingBalanceHint}
         </p>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="dailyDivisor">{copy.settings.dailyDivisor}</Label>
-        <Input
-          id="dailyDivisor"
-          name="dailyDivisor"
-          type="number"
-          min={1}
-          max={31}
-          defaultValue={String(settings.dailyDivisor)}
-        />
       </div>
       <fieldset className="space-y-3">
         <legend className="text-sm font-medium">

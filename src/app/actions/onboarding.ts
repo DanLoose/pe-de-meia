@@ -12,6 +12,7 @@ import type { ActionResult, OnboardingStatus } from "@/types";
 function revalidateOnboarding() {
   revalidatePath("/comecar");
   revalidatePath("/saldos");
+  revalidatePath("/totais");
   revalidatePath("/menu");
 }
 
@@ -54,5 +55,5 @@ export async function skipOnboardingAction(): Promise<void> {
   const userId = await getSessionUserId();
   await completeOnboarding(userId);
   revalidateOnboarding();
-  redirect("/saldos");
+  redirect("/totais");
 }

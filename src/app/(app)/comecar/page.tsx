@@ -18,7 +18,7 @@ export default async function ComecarPage() {
   ]);
 
   if (status.wizardCompleted) {
-    redirect("/saldos");
+    redirect("/totais");
   }
 
   return (

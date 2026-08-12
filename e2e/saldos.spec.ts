@@ -108,10 +108,26 @@ test.describe("Totais", () => {
     await loginAsDemo(page);
   });
 
-  test("shows KPI cards", async ({ page }) => {
+  test("shows folga and budget composition", async ({ page }) => {
     await page.goto("/totais");
-    await expect(page.getByText(copy.totals.performance)).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: copy.totals.title }),
+    ).toBeVisible();
+    await expect(page.getByText(copy.totals.slack)).toBeVisible();
+    await expect(
+      page.getByText(
+        new RegExp(
+          [
+            copy.totals.verdictSurplus,
+            copy.totals.verdictTight,
+            copy.totals.verdictDeficit,
+            copy.totals.verdictEmpty,
+          ].join("|"),
+        ),
+      ),
+    ).toBeVisible();
     await expect(page.getByText(copy.totals.costOfLiving)).toBeVisible();
+    await expect(page.getByText(copy.totals.fixedIncome)).toBeVisible();
     await expect(page.getByText(copy.totals.movements)).toBeVisible();
   });
 });

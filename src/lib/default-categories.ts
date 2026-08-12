@@ -13,7 +13,7 @@ export const DEFAULT_CATEGORIES: DefaultCategory[] = [
   { name: "Moradia", color: "#f97316", type: "EXPENSE", ledgerColumn: "EXPENSE" },
   { name: "Contas", color: "#a855f7", type: "EXPENSE", ledgerColumn: "EXPENSE" },
   { name: "Alimentação", color: "#ef4444", type: "EXPENSE", ledgerColumn: "DAILY" },
-  { name: "Diário", color: "#06b6d4", type: "EXPENSE", ledgerColumn: "DAILY" },
+  { name: "À vista", color: "#06b6d4", type: "EXPENSE", ledgerColumn: "DAILY" },
   { name: "Fatura", color: "#6366f1", type: "EXPENSE", ledgerColumn: "CARD" },
 ];
 

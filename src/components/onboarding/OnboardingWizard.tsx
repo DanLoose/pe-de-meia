@@ -34,16 +34,26 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/ui/money-input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+} from "@/components/ui/select";
 import { copy } from "@/lib/copy";
 import { appToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-import type { CategoryDTO } from "@/types";
+import type { CategoryDTO, TransactionType } from "@/types";
 
 const TOTAL_STEPS = 5;
+
+const INCOME_NAME_HINT =
+  /\b(sal[aá]rio|renda|provento|vencimento|ordenado|pagamento|freelance|comiss[aã]o)\b/i;
 
 type FixedBillDraft = {
   id: string;
   name: string;
+  type: TransactionType;
   amount: number;
   dayOfMonth: string;
   recurringId?: string;
@@ -67,11 +77,33 @@ function newDraftId() {
   return crypto.randomUUID();
 }
 
+function inferFixedType(name: string): TransactionType {
+  return INCOME_NAME_HINT.test(name.trim()) ? "INCOME" : "EXPENSE";
+}
+
 function defaultFixedBills(): FixedBillDraft[] {
   return [
-    { id: newDraftId(), name: "Aluguel", amount: 0, dayOfMonth: "5" },
-    { id: newDraftId(), name: "Internet", amount: 0, dayOfMonth: "10" },
-    { id: newDraftId(), name: "Telefone", amount: 0, dayOfMonth: "15" },
+    {
+      id: newDraftId(),
+      name: "Salário",
+      type: "INCOME",
+      amount: 0,
+      dayOfMonth: "5",
+    },
+    {
+      id: newDraftId(),
+      name: "Aluguel",
+      type: "EXPENSE",
+      amount: 0,
+      dayOfMonth: "10",
+    },
+    {
+      id: newDraftId(),
+      name: "Internet",
+      type: "EXPENSE",
+      amount: 0,
+      dayOfMonth: "15",
+    },
   ];
 }
 
@@ -104,18 +136,24 @@ export function OnboardingWizard({
   const [cardDueDay, setCardDueDay] = useState(String(initialCardDueDay));
   const [isPending, startTransition] = useTransition();
 
-  const expenseCategoryId =
-    categories.find(
-      (category) =>
-        category.type === "EXPENSE" && category.ledgerColumn === "EXPENSE",
-    )?.id ?? categories.find((category) => category.type === "EXPENSE")?.id;
+  const categoryIdForType = (type: TransactionType) => {
+    if (type === "INCOME") {
+      return (
+        categories.find(
+          (category) =>
+            category.type === "INCOME" && category.ledgerColumn === "INCOME",
+        )?.id ?? categories.find((category) => category.type === "INCOME")?.id
+      );
+    }
+    return (
+      categories.find(
+        (category) =>
+          category.type === "EXPENSE" && category.ledgerColumn === "EXPENSE",
+      )?.id ?? categories.find((category) => category.type === "EXPENSE")?.id
+    );
+  };
 
   const syncFixedBills = async (): Promise<boolean> => {
-    if (!expenseCategoryId) {
-      appToast.error(copy.toast.genericError);
-      return false;
-    }
-
     const nextBills: FixedBillDraft[] = [];
 
     for (const bill of fixedBills) {
@@ -131,9 +169,15 @@ export function OnboardingWizard({
         continue;
       }
 
+      const categoryId = categoryIdForType(bill.type);
+      if (!categoryId) {
+        appToast.error(copy.toast.genericError);
+        return false;
+      }
+
       const payload = {
-        type: "EXPENSE" as const,
-        categoryId: expenseCategoryId,
+        type: bill.type,
+        categoryId,
         amount: bill.amount,
         description: bill.name.trim(),
         dayOfMonth: Number(bill.dayOfMonth),
@@ -239,7 +283,7 @@ export function OnboardingWizard({
           appToast.error(result.error ?? copy.toast.genericError);
           return;
         }
-        router.push("/saldos");
+        router.push("/totais");
         router.refresh();
         return;
       }
@@ -363,10 +407,11 @@ export function OnboardingWizard({
               <div className="space-y-2">
                 {fixedBills.length > 0 ? (
                   <div
-                    className="hidden gap-3 px-1 text-xs font-medium text-muted-foreground sm:grid sm:grid-cols-[minmax(0,1fr)_140px_72px_36px]"
+                    className="hidden gap-3 px-1 text-xs font-medium text-muted-foreground sm:grid sm:grid-cols-[minmax(0,1fr)_110px_140px_72px_36px]"
                     aria-hidden
                   >
                     <span>{copy.onboarding.stepFixedName}</span>
+                    <span>{copy.onboarding.stepFixedType}</span>
                     <span>{copy.onboarding.stepFixedAmount}</span>
                     <span>{copy.onboarding.stepFixedDayShort}</span>
                     <span />
@@ -382,7 +427,7 @@ export function OnboardingWizard({
                     {fixedBills.map((bill) => (
                       <div
                         key={bill.id}
-                        className="grid gap-3 rounded-lg border bg-muted/20 p-3 sm:grid-cols-[minmax(0,1fr)_140px_72px_36px] sm:items-end"
+                        className="grid gap-3 rounded-lg border bg-muted/20 p-3 sm:grid-cols-[minmax(0,1fr)_110px_140px_72px_36px] sm:items-end"
                       >
                         <div className="space-y-1.5">
                           <Label className="sm:sr-only">
@@ -391,16 +436,62 @@ export function OnboardingWizard({
                           <Input
                             value={bill.name}
                             placeholder="Aluguel"
-                            onChange={(event) =>
+                            onChange={(event) => {
+                              const name = event.target.value;
+                              setFixedBills((current) =>
+                                current.map((item) => {
+                                  if (item.id !== bill.id) return item;
+                                  const keepManualType =
+                                    item.name.trim() !== "" &&
+                                    inferFixedType(item.name) !== item.type;
+                                  return {
+                                    ...item,
+                                    name,
+                                    type: keepManualType
+                                      ? item.type
+                                      : inferFixedType(name),
+                                  };
+                                }),
+                              );
+                            }}
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="sm:sr-only">
+                            {copy.onboarding.stepFixedType}
+                          </Label>
+                          <Select
+                            value={bill.type}
+                            onValueChange={(value) =>
                               setFixedBills((current) =>
                                 current.map((item) =>
                                   item.id === bill.id
-                                    ? { ...item, name: event.target.value }
+                                    ? {
+                                        ...item,
+                                        type: (value ??
+                                          "EXPENSE") as TransactionType,
+                                      }
                                     : item,
                                 ),
                               )
                             }
-                          />
+                          >
+                            <SelectTrigger className="w-full" size="sm">
+                              <span>
+                                {bill.type === "INCOME"
+                                  ? copy.entry.income
+                                  : copy.entry.expense}
+                              </span>
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="INCOME">
+                                {copy.entry.income}
+                              </SelectItem>
+                              <SelectItem value="EXPENSE">
+                                {copy.entry.expense}
+                              </SelectItem>
+                            </SelectContent>
+                          </Select>
                         </div>
                         <div className="space-y-1.5">
                           <Label className="sm:sr-only">
@@ -478,6 +569,7 @@ export function OnboardingWizard({
                     {
                       id: newDraftId(),
                       name: "",
+                      type: "EXPENSE",
                       amount: 0,
                       dayOfMonth: "1",
                     },

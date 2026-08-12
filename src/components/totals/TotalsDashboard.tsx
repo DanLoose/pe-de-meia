@@ -1,18 +1,17 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import {
-  KpiCard,
-  balanceClass,
-  expenseClass,
-  incomeClass,
-} from "@/components/totals/KpiCard";
+import { BudgetComposition } from "@/components/totals/BudgetComposition";
+import { FolgaHero } from "@/components/totals/FolgaHero";
+import { LedgerMovements } from "@/components/totals/LedgerMovements";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { incomeClass, moneyClass } from "@/lib/design";
 import { copy } from "@/lib/copy";
 import { formatCurrency } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import type { MonthTotalsData } from "@/types";
 
 interface TotalsDashboardProps {
@@ -35,6 +34,7 @@ function shiftMonth(year: number, month: number, delta: number) {
 export function TotalsDashboard({ data, today }: TotalsDashboardProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const monthKey = `${data.year}-${data.month}`;
 
   const navigateMonth = (delta: number) => {
     const next = shiftMonth(data.year, data.month, delta);
@@ -43,30 +43,27 @@ export function TotalsDashboard({ data, today }: TotalsDashboardProps) {
     });
   };
 
-  const dailyValue =
-    data.dailyCeiling !== null
-      ? `${formatCurrency(data.dailyAverage)} / ${formatCurrency(data.dailyCeiling)}`
-      : formatCurrency(data.dailyAverage);
-
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
+    <div className="mx-auto max-w-2xl space-y-8">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-1">
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
+            className="size-8 text-muted-foreground"
             aria-label={copy.ledger.prevMonth}
             onClick={() => navigateMonth(-1)}
             disabled={isPending}
           >
             <ChevronLeft className="size-4" />
           </Button>
-          <h2 className="min-w-[180px] text-center text-lg font-semibold capitalize">
+          <p className="min-w-[140px] text-center text-sm capitalize text-muted-foreground">
             {monthLabel(data.year, data.month)}
-          </h2>
+          </p>
           <Button
-            variant="outline"
+            variant="ghost"
             size="icon"
+            className="size-8 text-muted-foreground"
             aria-label={copy.ledger.nextMonth}
             onClick={() => navigateMonth(1)}
             disabled={isPending}
@@ -75,8 +72,9 @@ export function TotalsDashboard({ data, today }: TotalsDashboardProps) {
           </Button>
         </div>
         <Button
-          variant="outline"
+          variant="ghost"
           size="sm"
+          className="h-8 text-muted-foreground"
           onClick={() => {
             const [y, m] = today.split("-").map(Number);
             startTransition(() => {
@@ -89,61 +87,55 @@ export function TotalsDashboard({ data, today }: TotalsDashboardProps) {
         </Button>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <KpiCard
-          title={copy.totals.performance}
-          value={formatCurrency(data.performance)}
-          status={data.performanceStatus}
-          valueClassName={balanceClass(data.performance)}
-        />
-        <KpiCard
-          title={copy.totals.saved}
-          value={formatCurrency(data.saved)}
-          status={data.savedStatus}
-          progress={data.savedPercent}
-          valueClassName={incomeClass()}
-        />
-        <KpiCard
-          title={copy.totals.costOfLiving}
-          value={formatCurrency(data.costOfLiving)}
-          status={data.costOfLivingStatus}
-          valueClassName={expenseClass()}
-        />
-        <KpiCard
-          title={copy.totals.dailyAverage}
-          value={dailyValue}
-          status={data.dailyStatus}
-          valueClassName={expenseClass()}
-          statusAction={
-            data.dailyCeiling === null
-              ? {
-                  href: "/gastos-fixos/orcamento-diario",
-                  label: copy.totals.configureDailyCeiling,
-                }
-              : undefined
-          }
-        />
-      </div>
+      <FolgaHero
+        folga={data.performance}
+        verdict={data.verdict}
+        monthKey={monthKey}
+        missingIncome={
+          data.verdict === "empty" &&
+          (data.fixedExpense > 0 || data.variableEstimate !== null)
+        }
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>{copy.totals.movements}</CardTitle>
-        </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <p className="text-sm text-muted-foreground">{copy.totals.totalIncome}</p>
-            <p className={`text-xl font-semibold ${incomeClass()}`}>
-              {formatCurrency(data.totalIncome)}
+      <BudgetComposition
+        fixedIncome={data.fixedIncome}
+        fixedExpense={data.fixedExpense}
+        variableEstimate={data.variableEstimate}
+        costOfLiving={data.costOfLiving}
+        monthKey={monthKey}
+      />
+
+      {!data.setupComplete ? (
+        <div className="border-t border-border/60 pt-6">
+          <Link
+            href="/gastos-fixos"
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            {copy.totals.setupCta}
+          </Link>
+        </div>
+      ) : null}
+
+      {data.saved > 0 ? (
+        <div className="flex items-baseline justify-between gap-3 border-t border-border/60 pt-6">
+          <p className="text-sm font-medium text-muted-foreground">
+            {copy.totals.saved}
+          </p>
+          <div className="text-right">
+            <p className={cn("text-lg font-semibold", incomeClass())}>
+              {formatCurrency(data.saved)}
+            </p>
+            <p className={cn("text-xs text-muted-foreground", moneyClass)}>
+              {data.savedStatus}
             </p>
           </div>
-          <div>
-            <p className="text-sm text-muted-foreground">{copy.totals.totalExpense}</p>
-            <p className={`text-xl font-semibold ${expenseClass()}`}>
-              {formatCurrency(data.totalExpense)}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+        </div>
+      ) : null}
+
+      <LedgerMovements
+        totalIncome={data.totalIncome}
+        totalExpense={data.totalExpense}
+      />
     </div>
   );
 }

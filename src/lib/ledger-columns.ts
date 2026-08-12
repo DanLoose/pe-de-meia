@@ -45,7 +45,7 @@ export function ledgerColumnVariant(
 export const LEDGER_COLUMN_LABELS: Record<LedgerColumn, string> = {
   INCOME: "Entradas",
   EXPENSE: "Saídas",
-  DAILY: "Diários",
+  DAILY: "À vista",
   SAVINGS: "Economias",
   CARD: "Cartão",
 };
@@ -53,8 +53,8 @@ export const LEDGER_COLUMN_LABELS: Record<LedgerColumn, string> = {
 /** Plain-language labels for tag forms and onboarding. */
 export const LEDGER_COLUMN_FRIENDLY_LABELS: Record<LedgerColumn, string> = {
   INCOME: "Entra na conta",
-  EXPENSE: "Conta fixa / boleto",
-  DAILY: "Gasto do dia a dia",
+  EXPENSE: "Gasto fixo / boleto",
+  DAILY: "Gasto à vista",
   SAVINGS: "Guardei / investi",
   CARD: "Compra no crédito",
 };
@@ -74,6 +74,7 @@ export const DEFAULT_CATEGORY_LEDGER: Record<string, PrismaLedgerColumn> = {
   Moradia: "EXPENSE",
   Contas: "EXPENSE",
   Alimentação: "DAILY",
+  "À vista": "DAILY",
   Diário: "DAILY",
   Fatura: "CARD",
 };

@@ -94,7 +94,7 @@ export async function loginAction(
     await signIn("credentials", {
       email: parsed.data.email.toLowerCase(),
       password: parsed.data.password,
-      redirectTo: "/saldos",
+      redirectTo: "/totais",
     });
   } catch (error) {
     if (error instanceof AuthError) {
@@ -111,7 +111,7 @@ export async function demoLoginAction(): Promise<ActionResult> {
     await signIn("credentials", {
       email: "demo@pedemeia.dev",
       password: "password123",
-      redirectTo: "/saldos",
+      redirectTo: "/totais",
     });
   } catch (error) {
     if (error instanceof AuthError) {

@@ -4,7 +4,6 @@ import { EllipsisVertical, Pencil, Plus, Trash2 } from "lucide-react";
 import { useState, useTransition } from "react";
 import {
   deleteFixedExpenseAction,
-  updateDailyDivisorAction,
   upsertFixedExpenseAction,
 } from "@/app/actions/fixed-expenses";
 import { Button } from "@/components/ui/button";
@@ -24,12 +23,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/ui/money-input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
 import { copy } from "@/lib/copy";
 import { formatCurrency } from "@/lib/format";
 import { appToast } from "@/lib/toast";
@@ -38,8 +31,6 @@ import type { DailyForecastData, FixedExpenseDTO } from "@/types";
 interface DailyForecastManagerProps {
   initialData: DailyForecastData;
 }
-
-const DIVISOR_OPTIONS = [28, 30, 31];
 
 export function DailyForecastManager({ initialData }: DailyForecastManagerProps) {
   const [data, setData] = useState(initialData);
@@ -86,7 +77,7 @@ export function DailyForecastManager({ initialData }: DailyForecastManagerProps)
           ...current,
           expenses,
           totalFixed,
-          dailyCeiling: totalFixed / current.dailyDivisor,
+          dailyCeiling: totalFixed,
         };
       });
       setFormOpen(false);
@@ -108,26 +99,10 @@ export function DailyForecastManager({ initialData }: DailyForecastManagerProps)
           ...current,
           expenses,
           totalFixed,
-          dailyCeiling: totalFixed / current.dailyDivisor,
+          dailyCeiling: totalFixed,
         };
       });
       appToast.success(copy.dailyBudget.deleted);
-    });
-  };
-
-  const handleDivisorChange = (value: string) => {
-    const dailyDivisor = Number(value);
-    startTransition(async () => {
-      const result = await updateDailyDivisorAction(dailyDivisor);
-      if (!result.success) {
-        appToast.error(result.error ?? copy.toast.genericError);
-        return;
-      }
-      setData((current) => ({
-        ...current,
-        dailyDivisor,
-        dailyCeiling: current.totalFixed / dailyDivisor,
-      }));
     });
   };
 
@@ -200,44 +175,14 @@ export function DailyForecastManager({ initialData }: DailyForecastManagerProps)
         )}
       </div>
 
-      <div className="space-y-3 border-t pt-4">
-        <div className="flex items-center justify-between gap-3 text-sm">
-          <span className="lowercase text-muted-foreground">
-            {copy.dailyBudget.monthlyTotal}
-          </span>
-          <span className="tabular-nums">{formatCurrency(data.totalFixed)}</span>
-        </div>
-        <div className="flex items-center justify-between gap-3 text-sm">
-          <span className="lowercase text-muted-foreground">
-            {copy.dailyBudget.dividedBy}
-          </span>
-          <Select
-            value={String(data.dailyDivisor)}
-            onValueChange={(value) => {
-              if (value) handleDivisorChange(value);
-            }}
-          >
-            <SelectTrigger className="h-8 w-auto rounded-full px-3">
-              <span>{copy.dailyBudget.days(data.dailyDivisor)}</span>
-            </SelectTrigger>
-            <SelectContent>
-              {DIVISOR_OPTIONS.map((option) => (
-                <SelectItem key={option} value={String(option)}>
-                  {copy.dailyBudget.days(option)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex items-center justify-end border-t pt-4">
-          <div className="text-right">
-            <p className="text-xs lowercase text-muted-foreground">
-              {copy.dailyBudget.dailyCeiling}
-            </p>
-            <p className="text-2xl font-semibold tabular-nums">
-              {formatCurrency(data.dailyCeiling)}
-            </p>
-          </div>
+      <div className="flex items-center justify-end border-t pt-4">
+        <div className="text-right">
+          <p className="text-xs lowercase text-muted-foreground">
+            {copy.dailyBudget.dailyCeiling}
+          </p>
+          <p className="text-2xl font-semibold tabular-nums">
+            {formatCurrency(data.totalFixed)}
+          </p>
         </div>
       </div>
 
