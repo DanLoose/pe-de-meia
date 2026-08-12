@@ -19,6 +19,7 @@ export interface TransactionDTO {
   categoryName: string;
   categoryColor: string;
   recurringId: string | null;
+  ledgerColumn: LedgerColumn;
 }
 
 export interface CategoryDTO {

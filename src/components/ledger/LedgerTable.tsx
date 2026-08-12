@@ -4,11 +4,6 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { fetchLedgerMonthAction } from "@/app/actions/ledger";
-import {
-  createTransactionAction,
-  updateTransactionAction,
-} from "@/app/actions/transactions";
-import { EntryForm } from "@/components/entries/EntryForm";
 import { BalanceCell } from "@/components/ledger/BalanceCell";
 import {
   ColumnGlyph,
@@ -23,24 +18,13 @@ import { Button } from "@/components/ui/button";
 import { copy } from "@/lib/copy";
 import { ledgerRowHasActivity } from "@/lib/design";
 import { cn } from "@/lib/utils";
-import type {
-  CategoryDTO,
-  LedgerColumn,
-  LedgerMonthData,
-  TransactionType,
-} from "@/types";
+import type { CategoryDTO, LedgerColumn, LedgerMonthData } from "@/types";
 
 interface LedgerTableProps {
   initialData: LedgerMonthData;
   categories: CategoryDTO[];
   today: string;
 }
-
-type CellDraft = {
-  date: string;
-  type: TransactionType;
-  ledgerColumn: LedgerColumn;
-};
 
 function monthLabel(year: number, month: number) {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -109,9 +93,10 @@ export function LedgerTable({
   const router = useRouter();
   const [data, setData] = useState(initialData);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedColumn, setSelectedColumn] = useState<LedgerColumn | null>(
+    null,
+  );
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [draft, setDraft] = useState<CellDraft | null>(null);
-  const [formOpen, setFormOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const year = data.year;
@@ -145,16 +130,14 @@ export function LedgerTable({
 
   const handleDayClick = (date: string) => {
     setSelectedDate(date);
+    setSelectedColumn(null);
     setSheetOpen(true);
   };
 
-  const handleColumnClick = (
-    date: string,
-    type: TransactionType,
-    ledgerColumn: LedgerColumn,
-  ) => {
-    setDraft({ date, type, ledgerColumn });
-    setFormOpen(true);
+  const handleColumnClick = (date: string, ledgerColumn: LedgerColumn) => {
+    setSelectedDate(date);
+    setSelectedColumn(ledgerColumn);
+    setSheetOpen(true);
   };
 
   const handleChanged = () => {
@@ -169,6 +152,9 @@ export function LedgerTable({
   const handleDayNavigate = (date: string) => {
     setSelectedDate(date);
   };
+
+  const isColumnSelected = (date: string, column: LedgerColumn) =>
+    sheetOpen && selectedDate === date && selectedColumn === column;
 
   return (
     <>
@@ -197,7 +183,12 @@ export function LedgerTable({
               <ChevronRight className="size-4" />
             </Button>
           </div>
-          <Button variant="outline" size="sm" onClick={goToToday} disabled={isPending}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={goToToday}
+            disabled={isPending}
+          >
             {copy.calendar.today}
           </Button>
         </div>
@@ -242,34 +233,36 @@ export function LedgerTable({
                       date={row.date}
                       value={row.income}
                       variant="income"
-                      selected={draft?.date === row.date && draft.type === "INCOME"}
-                      onClick={() =>
-                        handleColumnClick(row.date, "INCOME", "INCOME")
-                      }
+                      selected={isColumnSelected(row.date, "INCOME")}
+                      onClick={() => handleColumnClick(row.date, "INCOME")}
                     />
                     <MovementCell
                       date={row.date}
                       value={row.expense}
                       variant="expense"
-                      selected={draft?.date === row.date && draft.type === "EXPENSE"}
-                      onClick={() =>
-                        handleColumnClick(row.date, "EXPENSE", "EXPENSE")
-                      }
+                      selected={isColumnSelected(row.date, "EXPENSE")}
+                      onClick={() => handleColumnClick(row.date, "EXPENSE")}
                     />
                     <MovementCell
                       date={row.date}
                       value={row.daily}
                       variant="daily"
+                      selected={isColumnSelected(row.date, "DAILY")}
+                      onClick={() => handleColumnClick(row.date, "DAILY")}
                     />
                     <MovementCell
                       date={row.date}
                       value={row.savings}
                       variant="savings"
+                      selected={isColumnSelected(row.date, "SAVINGS")}
+                      onClick={() => handleColumnClick(row.date, "SAVINGS")}
                     />
                     <MovementCell
                       date={row.date}
                       value={row.card}
                       variant="card"
+                      selected={isColumnSelected(row.date, "CARD")}
+                      onClick={() => handleColumnClick(row.date, "CARD")}
                     />
                     <BalanceCell value={row.balance} muted={!hasActivity} />
                   </tr>
@@ -304,32 +297,16 @@ export function LedgerTable({
 
       <LedgerDaySheet
         open={sheetOpen}
-        onOpenChange={setSheetOpen}
+        onOpenChange={(open) => {
+          setSheetOpen(open);
+          if (!open) setSelectedColumn(null);
+        }}
         date={selectedDate}
         categories={categories}
         onChanged={handleChanged}
         onNavigate={handleDayNavigate}
         monthDates={data.rows.map((row) => row.date)}
-      />
-
-      <EntryForm
-        open={formOpen}
-        onOpenChange={(open) => {
-          setFormOpen(open);
-          if (!open) setDraft(null);
-        }}
-        date={draft?.date ?? null}
-        categories={categories}
-        defaultType={draft?.type}
-        lockType
-        ledgerColumn={draft?.ledgerColumn}
-        onSaved={() => {
-          setFormOpen(false);
-          setDraft(null);
-          handleChanged();
-        }}
-        createAction={createTransactionAction}
-        updateAction={updateTransactionAction}
+        ledgerColumn={selectedColumn}
       />
     </>
   );

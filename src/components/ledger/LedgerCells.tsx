@@ -103,12 +103,14 @@ export function MovementCell({
   selected,
 }: MovementCellProps) {
   const interactive = Boolean(onClick);
-  const label =
-    variant === "income"
-      ? copy.ledger.addIncome
-      : variant === "expense"
-        ? copy.ledger.addExpense
-        : undefined;
+  const labelByVariant: Record<LedgerMovementVariant, string> = {
+    income: copy.ledger.viewIncome,
+    expense: copy.ledger.viewExpense,
+    daily: copy.ledger.viewDaily,
+    savings: copy.ledger.viewSavings,
+    card: copy.ledger.viewCard,
+  };
+  const label = labelByVariant[variant];
 
   const content = <MovementCellContent value={value} variant={variant} />;
 
