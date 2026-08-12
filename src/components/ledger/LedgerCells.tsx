@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus } from "lucide-react";
 import { copy } from "@/lib/copy";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -15,39 +15,67 @@ export const ledgerCellClass =
 
 const glyphStyles: Record<
   LedgerMovementVariant,
-  { className: string; letter?: string }
+  { className: string; hoverClassName: string; letter?: string }
 > = {
-  income: { className: "bg-income text-white" },
-  expense: { className: "bg-expense text-white" },
-  daily: { className: "bg-fuchsia-500 text-white", letter: "D" },
-  savings: { className: "bg-lime-500 text-white", letter: "E" },
-  card: { className: "bg-violet-500 text-white", letter: "C" },
+  income: {
+    className: "bg-income text-white",
+    hoverClassName: "group-hover:bg-income group-hover:text-white",
+  },
+  expense: {
+    className: "bg-expense text-white",
+    hoverClassName: "group-hover:bg-expense group-hover:text-white",
+  },
+  daily: {
+    className: "bg-fuchsia-500 text-white",
+    hoverClassName: "group-hover:bg-fuchsia-500 group-hover:text-white",
+    letter: "D",
+  },
+  savings: {
+    className: "bg-lime-500 text-white",
+    hoverClassName: "group-hover:bg-lime-500 group-hover:text-white",
+    letter: "E",
+  },
+  card: {
+    className: "bg-violet-500 text-white",
+    hoverClassName: "group-hover:bg-violet-500 group-hover:text-white",
+    letter: "C",
+  },
 };
 
 export function ColumnGlyph({
   variant,
   muted = false,
+  plusOnHover = false,
 }: {
   variant: LedgerMovementVariant;
   muted?: boolean;
+  plusOnHover?: boolean;
 }) {
   const style = glyphStyles[variant];
 
   return (
     <span
       className={cn(
-        "inline-flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
-        muted ? "bg-muted-foreground/20 text-muted-foreground/70" : style.className,
+        "relative inline-flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold",
+        muted
+          ? "bg-muted-foreground/20 text-muted-foreground/70"
+          : style.className,
+        plusOnHover && style.hoverClassName,
       )}
       aria-hidden
     >
-      {variant === "income" ? (
-        <ArrowDown className="size-3" />
-      ) : variant === "expense" ? (
-        <ArrowUp className="size-3" />
-      ) : (
-        style.letter
-      )}
+      <span className={cn(plusOnHover && "group-hover:opacity-0")}>
+        {variant === "income" ? (
+          <ArrowDown className="size-3" />
+        ) : variant === "expense" ? (
+          <ArrowUp className="size-3" />
+        ) : (
+          style.letter
+        )}
+      </span>
+      {plusOnHover ? (
+        <Plus className="pointer-events-none absolute size-3 opacity-0 group-hover:opacity-100" />
+      ) : null}
     </span>
   );
 }
@@ -92,54 +120,100 @@ interface MovementCellProps {
   variant: LedgerMovementVariant;
   date: string;
   onClick?: () => void;
+  onAdd?: () => void;
   selected?: boolean;
 }
+
+const viewLabelByVariant: Record<LedgerMovementVariant, string> = {
+  income: copy.ledger.viewIncome,
+  expense: copy.ledger.viewExpense,
+  daily: copy.ledger.viewDaily,
+  savings: copy.ledger.viewSavings,
+  card: copy.ledger.viewCard,
+};
+
+const addLabelByVariant: Record<LedgerMovementVariant, string> = {
+  income: copy.ledger.addIncome,
+  expense: copy.ledger.addExpense,
+  daily: copy.ledger.addDaily,
+  savings: copy.ledger.addSavings,
+  card: copy.ledger.addCard,
+};
 
 export function MovementCell({
   value,
   variant,
   date,
   onClick,
+  onAdd,
   selected,
 }: MovementCellProps) {
-  const interactive = Boolean(onClick);
-  const labelByVariant: Record<LedgerMovementVariant, string> = {
-    income: copy.ledger.viewIncome,
-    expense: copy.ledger.viewExpense,
-    daily: copy.ledger.viewDaily,
-    savings: copy.ledger.viewSavings,
-    card: copy.ledger.viewCard,
-  };
-  const label = labelByVariant[variant];
-
-  const content = <MovementCellContent value={value} variant={variant} />;
+  const isEmpty = value === 0;
 
   return (
     <td
       className={cn(
         ledgerCellClass,
         selected && "bg-primary/10 ring-1 ring-inset ring-primary/40",
-        interactive ? "cursor-pointer" : "cursor-default",
       )}
     >
-      {interactive ? (
-        <button
-          type="button"
-          data-testid={`ledger-cell-${date}-${variant}`}
-          aria-label={label}
-          className="group flex h-full w-full cursor-pointer hover:bg-muted/50"
-          onClick={onClick}
-        >
-          {content}
-        </button>
-      ) : (
-        <div
-          data-testid={`ledger-cell-${date}-${variant}`}
-          className="cursor-default"
-        >
-          {content}
-        </div>
-      )}
+      <div className="group flex h-full min-h-8 w-full items-stretch hover:bg-muted/50">
+        {onAdd ? (
+          <button
+            type="button"
+            data-testid={`ledger-add-${date}-${variant}`}
+            aria-label={addLabelByVariant[variant]}
+            className="flex shrink-0 cursor-pointer items-center pl-2.5"
+            onClick={onAdd}
+          >
+            <ColumnGlyph variant={variant} muted={isEmpty} plusOnHover />
+          </button>
+        ) : (
+          <span className="flex items-center pl-2.5">
+            <ColumnGlyph variant={variant} muted={isEmpty} />
+          </span>
+        )}
+        {onClick ? (
+          <button
+            type="button"
+            data-testid={`ledger-cell-${date}-${variant}`}
+            aria-label={viewLabelByVariant[variant]}
+            className="flex min-w-0 flex-1 cursor-pointer items-center justify-end py-1 pr-2.5"
+            onClick={onClick}
+          >
+            <span
+              className={cn(
+                "min-w-0 truncate tabular-nums",
+                isEmpty
+                  ? "text-muted-foreground/35"
+                  : variant === "income" || variant === "savings"
+                    ? "font-medium text-income"
+                    : "font-medium text-expense",
+              )}
+            >
+              {isEmpty ? "—" : formatCurrency(value)}
+            </span>
+          </button>
+        ) : (
+          <div
+            data-testid={`ledger-cell-${date}-${variant}`}
+            className="flex min-w-0 flex-1 items-center justify-end py-1 pr-2.5"
+          >
+            <span
+              className={cn(
+                "min-w-0 truncate tabular-nums",
+                isEmpty
+                  ? "text-muted-foreground/35"
+                  : variant === "income" || variant === "savings"
+                    ? "font-medium text-income"
+                    : "font-medium text-expense",
+              )}
+            >
+              {isEmpty ? "—" : formatCurrency(value)}
+            </span>
+          </div>
+        )}
+      </div>
     </td>
   );
 }
