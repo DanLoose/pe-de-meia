@@ -5,8 +5,6 @@ import { useSyncExternalStore, useState } from "react";
 import { logoutAction } from "@/app/actions/auth";
 import { AppSidebarNav } from "@/components/layout/AppSidebarNav";
 import { BrandLogo } from "@/components/layout/BrandLogo";
-import { SidebarGoToday } from "@/components/layout/SidebarGoToday";
-import { SidebarQuickEntry } from "@/components/layout/SidebarQuickEntry";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -21,11 +19,9 @@ import {
   subscribeSidebarCollapsed,
 } from "@/lib/sidebar-prefs";
 import { cn } from "@/lib/utils";
-import type { CategoryDTO } from "@/types";
 
 interface AppSidebarProps {
   userEmail: string;
-  categories: CategoryDTO[];
 }
 
 function useSidebarCollapsed() {
@@ -36,7 +32,7 @@ function useSidebarCollapsed() {
   );
 }
 
-export function AppSidebar({ userEmail, categories }: AppSidebarProps) {
+export function AppSidebar({ userEmail }: AppSidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const collapsed = useSidebarCollapsed();
 
@@ -57,21 +53,10 @@ export function AppSidebar({ userEmail, categories }: AppSidebarProps) {
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-3 py-4">
-          <div className="space-y-4">
-            <SidebarQuickEntry
-              categories={categories}
-              collapsed={isCollapsed}
-              onNavigate={options.mobile ? closeMobile : undefined}
-            />
-            <SidebarGoToday
-              collapsed={isCollapsed}
-              onNavigate={options.mobile ? closeMobile : undefined}
-            />
-            <AppSidebarNav
-              collapsed={isCollapsed}
-              onNavigate={options.mobile ? closeMobile : undefined}
-            />
-          </div>
+          <AppSidebarNav
+            collapsed={isCollapsed}
+            onNavigate={options.mobile ? closeMobile : undefined}
+          />
         </div>
 
         <div

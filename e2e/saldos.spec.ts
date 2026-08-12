@@ -13,6 +13,7 @@ test.describe("Planilha de saldos", () => {
     ).toBeVisible();
     await expect(page.getByRole("columnheader", { name: copy.ledger.income })).toBeVisible();
     await expect(page.getByRole("columnheader", { name: copy.ledger.balance })).toBeVisible();
+    await expect(page.getByTestId("ledger-totals")).toBeVisible();
   });
 
   test("navigates between months", async ({ page }) => {
@@ -20,10 +21,28 @@ test.describe("Planilha de saldos", () => {
     await expect(page.getByRole("heading", { level: 2 })).toBeVisible();
   });
 
-  test("opens day sheet on row click", async ({ page }) => {
+  test("opens day sheet from the day cell", async ({ page }) => {
     const testDate = "2026-08-15";
-    await page.getByTestId(`ledger-row-${testDate}`).click();
+    await page.getByTestId(`ledger-cell-${testDate}-day`).click();
     await expect(page.getByRole("dialog")).toBeVisible();
+  });
+
+  test("opens an income entry from the entradas cell", async ({ page }) => {
+    const testDate = "2026-08-12";
+    await page.getByTestId(`ledger-cell-${testDate}-income`).click();
+    await expect(
+      page.getByRole("heading", { name: copy.entry.newIncome }),
+    ).toBeVisible();
+    await expect(page.getByLabel(copy.entry.type)).toHaveCount(0);
+  });
+
+  test("opens an expense entry from the saidas cell", async ({ page }) => {
+    const testDate = "2026-08-12";
+    await page.getByTestId(`ledger-cell-${testDate}-expense`).click();
+    await expect(
+      page.getByRole("heading", { name: copy.entry.newExpense }),
+    ).toBeVisible();
+    await expect(page.getByLabel(copy.entry.type)).toHaveCount(0);
   });
 });
 

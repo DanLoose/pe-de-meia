@@ -4,20 +4,43 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { fetchLedgerMonthAction } from "@/app/actions/ledger";
+import {
+  createTransactionAction,
+  updateTransactionAction,
+} from "@/app/actions/transactions";
+import { EntryForm } from "@/components/entries/EntryForm";
 import { BalanceCell } from "@/components/ledger/BalanceCell";
+import {
+  ColumnGlyph,
+  DayCell,
+  ledgerCellClass,
+  MovementCell,
+  MovementCellContent,
+  type LedgerMovementVariant,
+} from "@/components/ledger/LedgerCells";
 import { LedgerDaySheet } from "@/components/ledger/LedgerDaySheet";
 import { Button } from "@/components/ui/button";
 import { copy } from "@/lib/copy";
-import { expenseClass, incomeClass, ledgerMovementClass, ledgerRowHasActivity } from "@/lib/design";
-import { formatCurrency } from "@/lib/format";
+import { ledgerRowHasActivity } from "@/lib/design";
 import { cn } from "@/lib/utils";
-import type { CategoryDTO, LedgerMonthData } from "@/types";
+import type {
+  CategoryDTO,
+  LedgerColumn,
+  LedgerMonthData,
+  TransactionType,
+} from "@/types";
 
 interface LedgerTableProps {
   initialData: LedgerMonthData;
   categories: CategoryDTO[];
   today: string;
 }
+
+type CellDraft = {
+  date: string;
+  type: TransactionType;
+  ledgerColumn: LedgerColumn;
+};
 
 function monthLabel(year: number, month: number) {
   return new Intl.DateTimeFormat("pt-BR", {
@@ -31,29 +54,49 @@ function shiftMonth(year: number, month: number, delta: number) {
   return { year: date.getFullYear(), month: date.getMonth() + 1 };
 }
 
-function MoneyCell({
+function HeaderCell({
+  children,
+  align = "right",
+  className,
+  variant,
+}: {
+  children: React.ReactNode;
+  align?: "left" | "right";
+  className?: string;
+  variant?: LedgerMovementVariant;
+}) {
+  return (
+    <th
+      className={cn(
+        ledgerCellClass,
+        "sticky top-0 z-20 whitespace-nowrap bg-muted px-2.5 py-2 font-medium shadow-[0_1px_0_0_var(--border)]",
+        align === "left" ? "border-l text-left" : "text-left",
+        className,
+      )}
+    >
+      <span className="inline-flex items-center gap-2">
+        {variant ? <ColumnGlyph variant={variant} /> : null}
+        {children}
+      </span>
+    </th>
+  );
+}
+
+function TotalCell({
   value,
   variant,
 }: {
   value: number;
-  variant: "income" | "expense" | "neutral";
+  variant: LedgerMovementVariant;
 }) {
-  if (value === 0) {
-    return (
-      <td className="px-3 py-1.5 text-right text-sm tabular-nums text-muted-foreground/35">
-        —
-      </td>
-    );
-  }
-
   return (
     <td
       className={cn(
-        "px-3 py-1.5 text-right text-sm",
-        ledgerMovementClass(value, variant),
+        ledgerCellClass,
+        "sticky bottom-0 z-20 cursor-default border-t bg-muted font-medium",
       )}
     >
-      {formatCurrency(value)}
+      <MovementCellContent value={value} variant={variant} compact />
     </td>
   );
 }
@@ -67,11 +110,12 @@ export function LedgerTable({
   const [data, setData] = useState(initialData);
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [draft, setDraft] = useState<CellDraft | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   const year = data.year;
   const month = data.month;
-  const showExtendedColumns = true;
 
   useEffect(() => {
     const hash = window.location.hash;
@@ -104,6 +148,15 @@ export function LedgerTable({
     setSheetOpen(true);
   };
 
+  const handleColumnClick = (
+    date: string,
+    type: TransactionType,
+    ledgerColumn: LedgerColumn,
+  ) => {
+    setDraft({ date, type, ledgerColumn });
+    setFormOpen(true);
+  };
+
   const handleChanged = () => {
     startTransition(async () => {
       const result = await fetchLedgerMonthAction(year, month);
@@ -119,8 +172,8 @@ export function LedgerTable({
 
   return (
     <>
-      <div className="space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex min-h-0 flex-1 flex-col gap-4">
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
@@ -149,25 +202,21 @@ export function LedgerTable({
           </Button>
         </div>
 
-        <div className="overflow-x-auto rounded-lg border bg-card">
-          <table className="w-full min-w-[640px] border-collapse text-sm">
+        <div className="min-h-0 flex-1 overflow-auto overscroll-contain rounded-lg border bg-card">
+          <table className="w-full min-w-[720px] border-separate border-spacing-0 text-sm">
             <thead>
-              <tr className="border-b bg-muted/50">
-                <th className="px-3 py-2 text-left font-medium">{copy.ledger.day}</th>
-                <th className="px-3 py-2 text-right font-medium text-income">
+              <tr>
+                <HeaderCell align="left">{copy.ledger.day}</HeaderCell>
+                <HeaderCell className="text-income" variant="income">
                   {copy.ledger.income}
-                </th>
-                <th className="px-3 py-2 text-right font-medium text-expense">
+                </HeaderCell>
+                <HeaderCell className="text-expense" variant="expense">
                   {copy.ledger.expense}
-                </th>
-                {showExtendedColumns && (
-                  <>
-                    <th className="px-3 py-2 text-right font-medium">{copy.ledger.daily}</th>
-                    <th className="px-3 py-2 text-right font-medium">{copy.ledger.savings}</th>
-                    <th className="px-3 py-2 text-right font-medium">{copy.ledger.card}</th>
-                  </>
-                )}
-                <th className="px-3 py-2 text-right font-medium">{copy.ledger.balance}</th>
+                </HeaderCell>
+                <HeaderCell variant="daily">{copy.ledger.daily}</HeaderCell>
+                <HeaderCell variant="savings">{copy.ledger.savings}</HeaderCell>
+                <HeaderCell variant="card">{copy.ledger.card}</HeaderCell>
+                <HeaderCell>{copy.ledger.balance}</HeaderCell>
               </tr>
             </thead>
             <tbody>
@@ -180,70 +229,73 @@ export function LedgerTable({
                     id={isToday ? `day-${row.date}` : undefined}
                     data-testid={`ledger-row-${row.date}`}
                     data-has-activity={hasActivity ? "true" : "false"}
-                    className={cn(
-                      "cursor-pointer border-b transition-colors hover:bg-muted/40",
-                      !hasActivity && !isToday && "bg-muted/20",
-                      hasActivity && "bg-card",
-                      isToday && "bg-primary/5 ring-1 ring-inset ring-primary/20",
-                    )}
-                    onClick={() => handleDayClick(row.date)}
+                    className={cn(isToday && "bg-primary/5")}
                   >
-                    <td
-                      className={cn(
-                        "px-3 py-1.5 tabular-nums",
-                        hasActivity || isToday
-                          ? "font-semibold text-foreground"
-                          : "font-normal text-muted-foreground/55",
-                        isToday && "text-primary",
-                      )}
-                    >
-                      <span className="inline-flex items-center gap-2">
-                        {hasActivity && (
-                          <span
-                            className="size-1.5 shrink-0 rounded-full bg-primary"
-                            aria-hidden
-                          />
-                        )}
-                        {String(row.day).padStart(2, "0")}
-                      </span>
-                    </td>
-                    <MoneyCell value={row.income} variant="income" />
-                    <MoneyCell value={row.expense} variant="expense" />
-                    {showExtendedColumns && (
-                      <>
-                        <MoneyCell value={row.daily} variant="expense" />
-                        <MoneyCell value={row.savings} variant="income" />
-                        <MoneyCell value={row.card} variant="expense" />
-                      </>
-                    )}
+                    <DayCell
+                      date={row.date}
+                      day={row.day}
+                      isToday={isToday}
+                      hasActivity={hasActivity}
+                      onClick={() => handleDayClick(row.date)}
+                    />
+                    <MovementCell
+                      date={row.date}
+                      value={row.income}
+                      variant="income"
+                      selected={draft?.date === row.date && draft.type === "INCOME"}
+                      onClick={() =>
+                        handleColumnClick(row.date, "INCOME", "INCOME")
+                      }
+                    />
+                    <MovementCell
+                      date={row.date}
+                      value={row.expense}
+                      variant="expense"
+                      selected={draft?.date === row.date && draft.type === "EXPENSE"}
+                      onClick={() =>
+                        handleColumnClick(row.date, "EXPENSE", "EXPENSE")
+                      }
+                    />
+                    <MovementCell
+                      date={row.date}
+                      value={row.daily}
+                      variant="daily"
+                    />
+                    <MovementCell
+                      date={row.date}
+                      value={row.savings}
+                      variant="savings"
+                    />
+                    <MovementCell
+                      date={row.date}
+                      value={row.card}
+                      variant="card"
+                    />
                     <BalanceCell value={row.balance} muted={!hasActivity} />
                   </tr>
                 );
               })}
             </tbody>
             <tfoot>
-              <tr className="border-t bg-muted/30 font-medium">
-                <td className="px-3 py-2">{copy.ledger.total}</td>
-                <td className={cn("px-3 py-2 text-right", incomeClass())}>
-                  {formatCurrency(data.totals.income)}
+              <tr data-testid="ledger-totals">
+                <td
+                  className={cn(
+                    ledgerCellClass,
+                    "sticky bottom-0 z-20 border-l border-t bg-muted px-2.5 py-2 font-medium",
+                  )}
+                >
+                  {copy.ledger.total}
                 </td>
-                <td className={cn("px-3 py-2 text-right", expenseClass())}>
-                  {formatCurrency(data.totals.expense)}
-                </td>
-                {showExtendedColumns && (
-                  <>
-                    <td className={cn("px-3 py-2 text-right", expenseClass())}>
-                      {formatCurrency(data.totals.daily)}
-                    </td>
-                    <td className={cn("px-3 py-2 text-right", incomeClass())}>
-                      {formatCurrency(data.totals.savings)}
-                    </td>
-                    <td className={cn("px-3 py-2 text-right", expenseClass())}>
-                      {formatCurrency(data.totals.card)}
-                    </td>
-                  </>
-                )}
-                <BalanceCell value={data.totals.balance} className="px-3 py-2" />
+                <TotalCell value={data.totals.income} variant="income" />
+                <TotalCell value={data.totals.expense} variant="expense" />
+                <TotalCell value={data.totals.daily} variant="daily" />
+                <TotalCell value={data.totals.savings} variant="savings" />
+                <TotalCell value={data.totals.card} variant="card" />
+                <BalanceCell
+                  value={data.totals.balance}
+                  header
+                  className="sticky bottom-0 z-20 border-t bg-muted"
+                />
               </tr>
             </tfoot>
           </table>
@@ -258,6 +310,26 @@ export function LedgerTable({
         onChanged={handleChanged}
         onNavigate={handleDayNavigate}
         monthDates={data.rows.map((row) => row.date)}
+      />
+
+      <EntryForm
+        open={formOpen}
+        onOpenChange={(open) => {
+          setFormOpen(open);
+          if (!open) setDraft(null);
+        }}
+        date={draft?.date ?? null}
+        categories={categories}
+        defaultType={draft?.type}
+        lockType
+        ledgerColumn={draft?.ledgerColumn}
+        onSaved={() => {
+          setFormOpen(false);
+          setDraft(null);
+          handleChanged();
+        }}
+        createAction={createTransactionAction}
+        updateAction={updateTransactionAction}
       />
     </>
   );

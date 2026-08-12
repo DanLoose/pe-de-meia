@@ -29,7 +29,7 @@ export default async function SaldosPage({ searchParams }: SaldosPageProps) {
   ]);
 
   return (
-    <div className="space-y-[var(--section-gap)]">
+    <div className="flex h-[calc(100dvh-2*var(--page-padding-y))] max-md:h-[calc(100dvh-3.5rem-2*var(--page-padding-y))] flex-col gap-[var(--section-gap)] overflow-hidden">
       <PageHeader title={copy.ledger.title} description={copy.ledger.subtitle} />
       <LedgerTable
         key={`${year}-${month}`}

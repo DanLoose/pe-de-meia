@@ -2,6 +2,14 @@ import { z } from "zod";
 
 export const transactionTypeSchema = z.enum(["INCOME", "EXPENSE"]);
 
+export const ledgerColumnSchema = z.enum([
+  "INCOME",
+  "EXPENSE",
+  "DAILY",
+  "SAVINGS",
+  "CARD",
+]);
+
 export const createTransactionSchema = z.object({
   type: transactionTypeSchema,
   amount: z.coerce.number().positive("Amount must be greater than zero"),
@@ -9,6 +17,7 @@ export const createTransactionSchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
   categoryId: z.string().min(1, "Category is required"),
   recurring: z.boolean().optional(),
+  ledgerColumn: ledgerColumnSchema.optional(),
 });
 
 export const updateTransactionSchema = createTransactionSchema.extend({

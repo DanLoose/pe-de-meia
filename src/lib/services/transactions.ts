@@ -197,6 +197,7 @@ export async function createTransaction(
           description,
           date,
           recurringId: recurring.id,
+          ledgerColumn: data.ledgerColumn,
         },
         include: { category: true },
       });
@@ -213,6 +214,7 @@ export async function createTransaction(
       amount: data.amount,
       description,
       date,
+      ledgerColumn: data.ledgerColumn,
     },
     include: { category: true },
   });
