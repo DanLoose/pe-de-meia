@@ -18,6 +18,7 @@ export interface TransactionDTO {
   categoryId: string;
   categoryName: string;
   categoryColor: string;
+  recurringId: string | null;
 }
 
 export interface CategoryDTO {

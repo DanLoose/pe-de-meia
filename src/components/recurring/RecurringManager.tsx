@@ -20,6 +20,7 @@ import {
 import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MoneyInput } from "@/components/ui/money-input";
 import {
   Select,
   SelectContent,
@@ -40,7 +41,7 @@ interface RecurringManagerProps {
 type RecurringFormState = {
   id?: string;
   type: TransactionType;
-  amount: string;
+  amount: number;
   description: string;
   dayOfMonth: string;
   categoryId: string;
@@ -50,7 +51,7 @@ function buildEmptyForm(categories: CategoryDTO[]): RecurringFormState {
   const firstExpense = categories.find((category) => category.type === "EXPENSE");
   return {
     type: "EXPENSE",
-    amount: "",
+    amount: 0,
     description: "",
     dayOfMonth: "1",
     categoryId: firstExpense?.id ?? "",
@@ -89,7 +90,7 @@ export function RecurringManager({
     setForm({
       id: item.id,
       type: item.type,
-      amount: String(item.amount),
+      amount: item.amount,
       description: item.description ?? "",
       dayOfMonth: String(item.dayOfMonth),
       categoryId: item.categoryId,
@@ -101,7 +102,7 @@ export function RecurringManager({
     startTransition(async () => {
       const payload = {
         type: form.type,
-        amount: Number(form.amount),
+        amount: form.amount,
         description: form.description,
         dayOfMonth: Number(form.dayOfMonth),
         categoryId: selectedCategoryId,
@@ -366,14 +367,11 @@ function RecurringFormDialog({
           </div>
           <div className="space-y-2">
             <Label htmlFor="recurring-amount">{copy.entry.amount}</Label>
-            <Input
+            <MoneyInput
               id="recurring-amount"
-              type="number"
-              min="0.01"
-              step="0.01"
               value={form.amount}
-              onChange={(event) =>
-                setForm((current) => ({ ...current, amount: event.target.value }))
+              onValueChange={(amount) =>
+                setForm((current) => ({ ...current, amount }))
               }
             />
           </div>
@@ -438,7 +436,7 @@ function RecurringFormDialog({
           </Button>
           <Button
             onClick={onSave}
-            disabled={isPending || !selectedCategoryId || !form.amount}
+            disabled={isPending || !selectedCategoryId || form.amount <= 0}
           >
             {form.id ? copy.entry.update : copy.entry.create}
           </Button>

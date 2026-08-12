@@ -194,8 +194,8 @@ export function LedgerDaySheet({
           onOpenChange(nextOpen);
         }}
       >
-        <SheetContent className="flex w-full flex-col sm:max-w-md">
-          <SheetHeader>
+        <SheetContent className="flex w-full flex-col gap-5 p-6 sm:max-w-md">
+          <SheetHeader className="p-0 pr-8">
             <div className="flex items-center justify-between gap-2">
               <Button
                 variant="ghost"
@@ -224,7 +224,7 @@ export function LedgerDaySheet({
             </div>
           </SheetHeader>
 
-          <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
+          <div className="grid grid-cols-3 gap-2 text-sm">
             <div className="rounded-lg border p-3">
               <p className="text-muted-foreground">{copy.daySheet.income}</p>
               <p className={cn("font-medium", incomeClass())}>
@@ -245,7 +245,7 @@ export function LedgerDaySheet({
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <Select
               value={typeFilter}
               onValueChange={(value) => setTypeFilter(value as TypeFilter)}
@@ -272,9 +272,9 @@ export function LedgerDaySheet({
             </Button>
           </div>
 
-          <Separator className="my-4" />
+          <Separator />
 
-          <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
             {isLoading && transactions.length === 0 && (
               <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
                 <Loader2 className="size-4 animate-spin" />

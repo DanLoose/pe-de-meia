@@ -34,6 +34,7 @@ function toTransactionDTO(
     categoryId: transaction.categoryId,
     categoryName: transaction.category.name,
     categoryColor: transaction.category.color,
+    recurringId: transaction.recurringId,
   };
 }
 
@@ -169,14 +170,49 @@ export async function createTransaction(
   const data = createTransactionSchema.parse(input);
   await assertCategoryOwnership(userId, data.categoryId, data.type);
 
+  const date = parseDateOnly(data.date);
+  const description = data.description?.trim() || null;
+
+  if (data.recurring) {
+    const dayOfMonth = date.getUTCDate();
+
+    const transaction = await prisma.$transaction(async (tx) => {
+      const recurring = await tx.recurringTransaction.create({
+        data: {
+          userId,
+          categoryId: data.categoryId,
+          type: data.type,
+          amount: data.amount,
+          description,
+          dayOfMonth,
+        },
+      });
+
+      return tx.transaction.create({
+        data: {
+          userId,
+          categoryId: data.categoryId,
+          type: data.type,
+          amount: data.amount,
+          description,
+          date,
+          recurringId: recurring.id,
+        },
+        include: { category: true },
+      });
+    });
+
+    return toTransactionDTO(transaction);
+  }
+
   const transaction = await prisma.transaction.create({
     data: {
       userId,
       categoryId: data.categoryId,
       type: data.type,
       amount: data.amount,
-      description: data.description?.trim() || null,
-      date: parseDateOnly(data.date),
+      description,
+      date,
     },
     include: { category: true },
   });
@@ -200,16 +236,43 @@ export async function updateTransaction(
 
   await assertCategoryOwnership(userId, data.categoryId, data.type);
 
-  const transaction = await prisma.transaction.update({
-    where: { id: data.id },
-    data: {
-      categoryId: data.categoryId,
-      type: data.type,
-      amount: data.amount,
-      description: data.description?.trim() || null,
-      date: parseDateOnly(data.date),
-    },
-    include: { category: true },
+  const date = parseDateOnly(data.date);
+  const description = data.description?.trim() || null;
+
+  const transaction = await prisma.$transaction(async (tx) => {
+    let recurringId = existing.recurringId;
+
+    if (data.recurring === true && !recurringId) {
+      const recurring = await tx.recurringTransaction.create({
+        data: {
+          userId,
+          categoryId: data.categoryId,
+          type: data.type,
+          amount: data.amount,
+          description,
+          dayOfMonth: date.getUTCDate(),
+        },
+      });
+      recurringId = recurring.id;
+    }
+
+    if (data.recurring === false && recurringId) {
+      await tx.recurringTransaction.delete({ where: { id: recurringId } });
+      recurringId = null;
+    }
+
+    return tx.transaction.update({
+      where: { id: data.id },
+      data: {
+        categoryId: data.categoryId,
+        type: data.type,
+        amount: data.amount,
+        description,
+        date,
+        recurringId,
+      },
+      include: { category: true },
+    });
   });
 
   return toTransactionDTO(transaction);

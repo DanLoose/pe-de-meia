@@ -29,6 +29,8 @@ function revalidateFinancePaths() {
   revalidatePath("/horizonte");
   revalidatePath("/calendario");
   revalidatePath("/calendar");
+  revalidatePath("/recorrentes");
+  revalidatePath("/recurring");
 }
 
 export async function fetchMonthDataAction(

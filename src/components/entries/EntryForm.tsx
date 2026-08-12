@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MoneyInput } from "@/components/ui/money-input";
 import {
   Select,
   SelectContent,
@@ -51,6 +52,12 @@ function CategoryOption({ category }: { category: CategoryDTO }) {
   );
 }
 
+function dayFromDate(date: string): number | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!match) return null;
+  return Number(match[3]);
+}
+
 function EntryFormFields({
   date,
   categories,
@@ -64,14 +71,13 @@ function EntryFormFields({
   const [type, setType] = useState<TransactionType>(
     transaction?.type ?? "EXPENSE",
   );
-  const [amount, setAmount] = useState(
-    transaction ? String(transaction.amount) : "",
-  );
+  const [amount, setAmount] = useState(transaction?.amount ?? 0);
   const [description, setDescription] = useState(
     transaction?.description ?? "",
   );
   const [entryDate, setEntryDate] = useState(transaction?.date ?? date ?? "");
   const [categoryId, setCategoryId] = useState(transaction?.categoryId ?? "");
+  const [recurring, setRecurring] = useState(Boolean(transaction?.recurringId));
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -90,6 +96,8 @@ function EntryFormFields({
     (category) => category.id === selectedCategoryId,
   );
 
+  const recurringDay = dayFromDate(entryDate);
+
   const handleTypeChange = (value: TransactionType | null) => {
     if (!value) return;
     setType(value);
@@ -101,12 +109,18 @@ function EntryFormFields({
     event.preventDefault();
     setError(null);
 
+    if (amount <= 0) {
+      setError(copy.entry.saveError);
+      return;
+    }
+
     const payload = {
       type,
-      amount: Number(amount),
+      amount,
       description,
       date: entryDate,
       categoryId: selectedCategoryId,
+      recurring,
       ...(transaction ? { id: transaction.id } : {}),
     };
 
@@ -160,22 +174,13 @@ function EntryFormFields({
 
         <div className="space-y-2">
           <Label htmlFor="entry-amount">{copy.entry.amount}</Label>
-          <div className="relative">
-            <span className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm text-muted-foreground">
-              R$
-            </span>
-            <Input
-              id="entry-amount"
-              data-testid="entry-amount"
-              type="number"
-              min="0.01"
-              step="0.01"
-              required
-              value={amount}
-              onChange={(event) => setAmount(event.target.value)}
-              className="pl-10"
-            />
-          </div>
+          <MoneyInput
+            id="entry-amount"
+            data-testid="entry-amount"
+            required
+            value={amount}
+            onValueChange={setAmount}
+          />
         </div>
 
         <div className="space-y-2">
@@ -226,6 +231,24 @@ function EntryFormFields({
           />
         </div>
 
+        <div className="space-y-1">
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input
+              type="checkbox"
+              data-testid="entry-recurring"
+              checked={recurring}
+              onChange={(event) => setRecurring(event.target.checked)}
+              className="size-4 rounded border border-input accent-primary"
+            />
+            {copy.entry.recurring}
+          </label>
+          {recurring && recurringDay != null && (
+            <p className="pl-6 text-xs text-muted-foreground">
+              {copy.entry.recurringHint(recurringDay)}
+            </p>
+          )}
+        </div>
+
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         <DialogFooter>
@@ -239,7 +262,7 @@ function EntryFormFields({
           <Button
             type="submit"
             data-testid="entry-submit"
-            disabled={isPending || !selectedCategoryId}
+            disabled={isPending || !selectedCategoryId || amount <= 0}
           >
             {isPending
               ? copy.entry.saving
