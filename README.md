@@ -1,36 +1,114 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Pé-de-meia
 
-## Getting Started
+Personal finance calendar web app. Track daily income and expenses on a month/week calendar view.
 
-First, run the development server:
+## Stack
+
+- Next.js (App Router) + TypeScript
+- PostgreSQL + Prisma
+- Auth.js (credentials)
+- Tailwind CSS + shadcn/ui
+- FullCalendar
+
+## Prerequisites
+
+- Node.js 20+
+- Docker Desktop (for local PostgreSQL)
+
+## Local setup
+
+1. Install dependencies:
+
+```bash
+npm install
+```
+
+2. Copy environment variables:
+
+```bash
+cp .env.example .env
+```
+
+Update `AUTH_SECRET` with a secure random value:
+
+```bash
+openssl rand -base64 32
+```
+
+3. Start PostgreSQL:
+
+```bash
+docker compose up -d
+```
+
+4. Run database migrations:
+
+```bash
+npm run db:migrate
+```
+
+When prompted for a migration name on first setup, use `init`.
+
+5. Optional: seed a demo user and default categories:
+
+```bash
+npm run db:seed
+```
+
+Demo credentials: `demo@pedemeia.dev` / `password123`
+
+6. Start the dev server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Features (v1)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Email/password sign up and sign in
+- Month and week calendar views
+- Daily income, expense, and net totals on each day
+- Create, edit, and delete entries per day
+- User-scoped data (ready for future SaaS multi-tenancy)
 
-## Learn More
+## Automated tests (Playwright)
 
-To learn more about Next.js, take a look at the following resources:
+Prerequisites: Docker Postgres running (`docker compose up -d`) and migrations applied.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+npm run test:e2e
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Other commands:
 
-## Deploy on Vercel
+- `npm run test:e2e:ui` — interactive Playwright UI
+- `npm run test:e2e:report` — open the last HTML report
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Tests seed the demo user automatically before running.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Project scripts
+
+- `npm run dev` — start development server
+- `npm run build` — production build
+- `npm run lint` — run ESLint
+- `npm run db:migrate` — run Prisma migrations
+- `npm run db:seed` — seed demo data
+- `npm run db:studio` — open Prisma Studio
+- `npm run test:e2e` — run Playwright end-to-end tests
+
+## Environment variables
+
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `AUTH_SECRET` | Secret for Auth.js session encryption |
+| `AUTH_URL` | App URL (e.g. `http://localhost:3000`) |
+
+## Architecture notes
+
+- All financial records are scoped by `userId`
+- Business logic lives in `src/lib/services/`
+- Server actions in `src/app/actions/` handle mutations and reads
+- Default categories are created on registration (and via seed for demo user)
