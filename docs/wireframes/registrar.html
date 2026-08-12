@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Registrar (V2) — Pé-de-meia</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .v2-shell {
+        max-width: 28rem;
+        margin: 0 auto;
+      }
+      .v2-context {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+      .pay-cards {
+        display: grid;
+        gap: 0.6rem;
+        margin: 0.75rem 0 1rem;
+      }
+      .pay-card {
+        display: block;
+        border: 1.5px solid var(--border);
+        border-radius: var(--radius);
+        padding: 0.85rem 1rem;
+        background: var(--card);
+        cursor: pointer;
+        transition: border-color 0.15s, box-shadow 0.15s;
+      }
+      .pay-card:hover {
+        border-color: color-mix(in oklch, var(--primary) 40%, var(--border));
+      }
+      .pay-card.active {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px color-mix(in oklch, var(--primary) 18%, transparent);
+      }
+      .pay-card strong {
+        display: block;
+        font-size: 0.95rem;
+      }
+      .pay-card span {
+        display: block;
+        margin-top: 0.25rem;
+        font-size: 0.8rem;
+        color: var(--muted);
+      }
+      .pay-card input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+      }
+      .effect {
+        border-radius: var(--radius);
+        padding: 0.75rem 1rem;
+        font-size: 0.85rem;
+        margin-bottom: 1.25rem;
+      }
+      .effect.cash {
+        background: color-mix(in oklch, var(--expense) 10%, white);
+        border: 1px solid color-mix(in oklch, var(--expense) 25%, var(--border));
+      }
+      .effect.card {
+        background: color-mix(in oklch, var(--amber) 18%, white);
+        border: 1px solid color-mix(in oklch, var(--amber) 35%, var(--border));
+      }
+      .effect[hidden] {
+        display: none;
+      }
+      .vs-est {
+        margin-top: 1.5rem;
+        padding: 0.85rem 1rem;
+        border-radius: var(--radius);
+        border: 1px dashed var(--border);
+        background: oklch(0.98 0.01 175);
+        font-size: 0.85rem;
+      }
+      .vs-est strong {
+        color: var(--fg);
+      }
+      .flow-steps {
+        display: flex;
+        gap: 0.35rem;
+        flex-wrap: wrap;
+        margin: 0 0 1.25rem;
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+      .flow-steps span {
+        padding: 0.2rem 0.55rem;
+        border-radius: 999px;
+        background: oklch(0.95 0.01 175);
+      }
+      .flow-steps .on {
+        background: color-mix(in oklch, var(--primary) 15%, white);
+        color: var(--primary);
+        font-weight: 600;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">Pé-de-meia</div>
+        <div class="nav-label">Visão</div>
+        <a class="nav-link" href="mapa.html">Mapa financeiro</a>
+        <a class="nav-link" href="home.html">Totais</a>
+        <a class="nav-link" href="caixa.html">Caixa</a>
+        <a class="nav-link" href="projecao.html">Projeção</a>
+        <div class="nav-label">Configurar</div>
+        <a class="nav-link" href="compromissos.html">Compromissos</a>
+        <a class="nav-link" href="tags.html">Tags</a>
+        <a class="nav-link" href="menu.html">Menu</a>
+      </aside>
+      <main class="main">
+        <div class="v2-shell">
+          <p class="chip">Wireframe V2 · não implementar ainda</p>
+
+          <div class="v2-context">
+            <span>Aberto a partir do <a href="caixa.html">Caixa</a> · dia 12</span>
+            <a href="caixa.html">← Voltar</a>
+          </div>
+
+          <div class="flow-steps" aria-hidden="true">
+            <span class="on">1. Valor</span>
+            <span class="on">2. O que foi</span>
+            <span class="on">3. Como pagou</span>
+            <span>4. Salvar</span>
+          </div>
+
+          <h1 class="page-title">Registrar gasto</h1>
+          <p class="page-sub">
+            Uma pergunta decide o caixa: <strong>como pagou?</strong>
+            Um lançamento = um destino. Sem “Diário”, sem teto.
+          </p>
+
+          <div class="field">
+            <label>Valor</label>
+            <input type="text" value="R$ 32,90" readonly />
+          </div>
+          <div class="field">
+            <label>O que foi (tag)</label>
+            <input type="text" value="Almoço" readonly />
+          </div>
+          <div class="field">
+            <label>Quando</label>
+            <input type="text" value="Hoje · 12 ago" readonly />
+          </div>
+
+          <p style="font-weight: 600; font-size: 0.9rem; margin: 1.25rem 0 0.35rem">
+            Como pagou?
+          </p>
+          <div class="pay-cards" id="pay-cards">
+            <label class="pay-card active" data-mode="cash">
+              <input type="radio" name="pay" value="cash" checked />
+              <strong>Conta / PIX / débito</strong>
+              <span>Sai do saldo hoje. Coluna “À vista” no Caixa.</span>
+            </label>
+            <label class="pay-card" data-mode="card">
+              <input type="radio" name="pay" value="card" />
+              <strong>Cartão de crédito</strong>
+              <span>Entra na fatura. Saldo só muda no vencimento.</span>
+            </label>
+          </div>
+
+          <div class="effect cash" id="effect-cash">
+            <strong>Efeito no caixa:</strong> saldo de hoje − R$ 32,90.
+            Aparece como gasto à vista no dia 12.
+          </div>
+          <div class="effect card" id="effect-card" hidden>
+            <strong>Efeito no cartão:</strong> + R$ 32,90 na fatura atual.
+            O Caixa não muda agora — só no pagamento da fatura.
+          </div>
+
+          <div class="btn-row">
+            <a class="btn btn-ghost" href="caixa.html">Cancelar</a>
+            <a class="btn btn-primary" href="caixa.html">Salvar</a>
+          </div>
+
+          <div class="vs-est">
+            <strong>V2.3 · leve:</strong> Variáveis (estimativa) R$ 810 · já gasto à
+            vista neste mês R$ 240 · <strong>resta ~ R$ 570</strong> da estimativa.
+            Não é teto diário.
+          </div>
+
+          <p class="wire-note">
+            <strong>V2.1</strong> pay-first (esta tela) ·
+            <strong>V2.2</strong> meio de pagamento escolhe a coluna ·
+            <strong>V2.3</strong> realizado vs estimativa (faixa acima).
+            Fora de escopo: Diário + teto (V3).
+          </p>
+        </div>
+      </main>
+    </div>
+    <script>
+      const cards = document.querySelectorAll(".pay-card");
+      const cash = document.getElementById("effect-cash");
+      const card = document.getElementById("effect-card");
+      cards.forEach((el) => {
+        el.addEventListener("click", () => {
+          cards.forEach((c) => c.classList.remove("active"));
+          el.classList.add("active");
+          el.querySelector("input").checked = true;
+          const mode = el.dataset.mode;
+          cash.hidden = mode !== "cash";
+          card.hidden = mode !== "card";
+        });
+      });
+    </script>
+  </body>
+</html>

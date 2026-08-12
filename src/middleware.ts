@@ -22,6 +22,7 @@ export const config = {
     "/saldos/:path*",
     "/totais/:path*",
     "/horizonte/:path*",
+    "/mapa-financeiro/:path*",
     "/menu/:path*",
     "/calendario/:path*",
     "/calendar/:path*",

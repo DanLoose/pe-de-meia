@@ -25,6 +25,8 @@ folga         ≈ Σ receitas_fixas − custo_de_vida
 
 A estimativa **não** materializa lançamentos e **não** se divide por dias (sem teto/dia).
 
+**Dois tempos (fluxo de vida):** o **mês** responde “sobra pra viver?” (folga = plano). O **caixa** responde “tenho hoje / quando fica vermelho?” (Saldos e Projeção). Não misturar as duas verdades sem legenda. Ver [`PRODUTO.md`](./PRODUTO.md) §0 e wireframes em [`wireframes/`](./wireframes/).
+
 ### Fases de produto
 
 | Fase | Conteúdo |

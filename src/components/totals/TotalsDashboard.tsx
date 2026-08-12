@@ -1,13 +1,14 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useTransition } from "react";
 import { BudgetComposition } from "@/components/totals/BudgetComposition";
 import { FolgaHero } from "@/components/totals/FolgaHero";
 import { LedgerMovements } from "@/components/totals/LedgerMovements";
+import { LifestyleCoach } from "@/components/totals/LifestyleCoach";
 import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
 import { incomeClass, moneyClass } from "@/lib/design";
 import { copy } from "@/lib/copy";
 import { formatCurrency } from "@/lib/format";
@@ -35,6 +36,9 @@ export function TotalsDashboard({ data, today }: TotalsDashboardProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const monthKey = `${data.year}-${data.month}`;
+  const missingIncome =
+    data.verdict === "empty" &&
+    (data.fixedExpense > 0 || data.variableEstimate !== null);
 
   const navigateMonth = (delta: number) => {
     const next = shiftMonth(data.year, data.month, delta);
@@ -87,14 +91,30 @@ export function TotalsDashboard({ data, today }: TotalsDashboardProps) {
         </Button>
       </div>
 
+      <p className="inline-flex flex-wrap items-center gap-x-2 gap-y-1 rounded-full bg-muted/80 px-3 py-1 text-xs text-muted-foreground">
+        <span>
+          {copy.totals.planChip.split("·")[0]?.trim()}
+          {" · "}
+          <span className="font-medium text-foreground">
+            {copy.totals.planChip.split("·")[1]?.trim()}
+          </span>
+        </span>
+        <Link href="/saldos" className="font-medium text-primary hover:underline">
+          {copy.totals.seeCash}
+        </Link>
+      </p>
+
       <FolgaHero
         folga={data.performance}
         verdict={data.verdict}
         monthKey={monthKey}
-        missingIncome={
-          data.verdict === "empty" &&
-          (data.fixedExpense > 0 || data.variableEstimate !== null)
-        }
+        missingIncome={missingIncome}
+      />
+
+      <LifestyleCoach
+        verdict={data.verdict}
+        folga={data.performance}
+        missingIncome={missingIncome}
       />
 
       <BudgetComposition

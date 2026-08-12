@@ -2,9 +2,42 @@
 
 > Controle de caixa e orçamento pessoal: receitas/gastos fixos + estimativa de variáveis (custo de vida), com planilha de saldos e projeção. Registros do dia com método de pagamento vêm na fase seguinte.
 
-**Versão:** 3.0 (simplificado)  
+**Versão:** 3.1 (fluxo de vida + wireframes)  
 **Data:** agosto/2026  
-**Domínio canônico:** [`DOMINIO.md`](./DOMINIO.md)
+**Domínio canônico:** [`DOMINIO.md`](./DOMINIO.md)  
+**Wireframes:** [`wireframes/index.html`](./wireframes/index.html)
+
+---
+
+## 0. Fluxo de vida (antes das telas)
+
+Persona: trabalhador com renda previsível. Quer **não passar susto**, não virar contador.
+
+### Dois tempos
+
+| Tempo | Pergunta | Capacidade |
+|-------|----------|------------|
+| **Mês (plano)** | Depois das contas, quanto sobra pra viver? | Totais / Compromissos (folga) |
+| **Caixa (agora)** | Tenho dinheiro hoje? Quando fica vermelho? | Saldos / Projeção |
+
+O app **propõe estilo de vida** (coach: guardar, cortar variável, encurtar trecho vermelho) — não só rastreia contas.
+
+### Setup (≤10 min)
+
+1. Receitas e gastos fixos (tipo explícito)  
+2. Estimativa do variável  
+3. Saldo hoje + cartão  
+→ **Aha:** ver a folga antes de lançar o dia.
+
+### Rituais
+
+- **Marcos do mês:** abrir Totais (pós-salário, meio, fim).  
+- **Ansiedade de caixa:** Saldos (heatmap + “vermelho do dia X–Y”).  
+- **Ansiedade futura:** Projeção (trechos curtos vs longos).  
+- **Vida mudou:** Compromissos.  
+- **Registrar o dia:** opcional (V2) — “como pagou?”.
+
+Wireframes clicáveis: pasta [`docs/wireframes/`](./wireframes/).
 
 ---
 
@@ -232,3 +265,4 @@ Saldos, colunas de ledger, cartão/fatura, Horizonte, tags, auth, onboarding bas
 |--------|------|-------|
 | 1.0 | ago/2026 | Documento inicial (planilha + Diário/teto) |
 | 3.0 | ago/2026 | Modelo simplificado: fixos + estimativa variável; Diário/teto → V3; registros do dia → V2 |
+| 3.1 | ago/2026 | Fluxo de vida + saúde financeira; link para wireframes em `docs/wireframes/` |

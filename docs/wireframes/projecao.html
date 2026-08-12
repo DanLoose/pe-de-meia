@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Projeção — Pé-de-meia</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">Pé-de-meia</div>
+        <div class="nav-label">Visão</div>
+        <a class="nav-link" href="home.html">Totais</a>
+        <a class="nav-link" href="caixa.html">Saldos</a>
+        <a class="nav-link active" href="projecao.html">Projeção</a>
+        <div class="nav-label">Configurar</div>
+        <a class="nav-link" href="compromissos.html">Compromissos</a>
+        <a class="nav-link" href="tags.html">Tags</a>
+        <a class="nav-link" href="menu.html">Menu</a>
+      </aside>
+      <main class="main wide">
+        <h1 class="page-title">Projeção</h1>
+        <p class="page-sub">Saldo projetado — onde o vermelho aparece e se passa rápido.</p>
+
+        <div class="streak">
+          <strong>Setembro:</strong> vermelho ~6 dias no meio do mês (após aluguel, antes do salário mental do ciclo).
+          <br />
+          <strong>Outubro:</strong> faixa curta (2–3 dias). Recuperável.
+        </div>
+
+        <div class="heat-legend">
+          <span class="ok">Ok</span>
+          <span class="low">Baixo</span>
+          <span class="bad">Negativo</span>
+        </div>
+
+        <div class="horizon" aria-label="Heatmap multi-mês">
+          <div class="h"></div>
+          <div class="h">Ago</div>
+          <div class="h">Set</div>
+          <div class="h">Out</div>
+          <!-- sample rows for days 1,5,10,15,18-21,25 -->
+          <div class="dn">1</div>
+          <div class="cell ok"></div>
+          <div class="cell ok"></div>
+          <div class="cell ok"></div>
+          <div class="dn">5</div>
+          <div class="cell ok"></div>
+          <div class="cell ok"></div>
+          <div class="cell ok"></div>
+          <div class="dn">10</div>
+          <div class="cell low"></div>
+          <div class="cell low"></div>
+          <div class="cell low"></div>
+          <div class="dn">15</div>
+          <div class="cell low"></div>
+          <div class="cell bad"></div>
+          <div class="cell low"></div>
+          <div class="dn">18</div>
+          <div class="cell bad"></div>
+          <div class="cell bad"></div>
+          <div class="cell bad"></div>
+          <div class="dn">19</div>
+          <div class="cell bad"></div>
+          <div class="cell bad"></div>
+          <div class="cell low"></div>
+          <div class="dn">20</div>
+          <div class="cell bad"></div>
+          <div class="cell bad"></div>
+          <div class="cell ok"></div>
+          <div class="dn">21</div>
+          <div class="cell bad"></div>
+          <div class="cell low"></div>
+          <div class="cell ok"></div>
+          <div class="dn">25</div>
+          <div class="cell ok"></div>
+          <div class="cell ok"></div>
+          <div class="cell ok"></div>
+        </div>
+
+        <div class="coach" style="margin-top: 1.5rem">
+          <div class="coach-title">Sugestão</div>
+          <p>
+            O vermelho se repete depois do aluguel. Adiantar R$ 300 da estimativa de lazer
+            ou negociar o dia do aluguel encurta o trecho.
+          </p>
+          <a class="btn btn-primary" href="compromissos.html">Rever compromissos</a>
+        </div>
+
+        <p class="wire-note">
+          Projeção = ansiedade futura com mapa. Coach traduz o vermelho em ação.
+        </p>
+      </main>
+    </div>
+  </body>
+</html>

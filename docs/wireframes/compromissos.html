@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Compromissos — Pé-de-meia</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">Pé-de-meia</div>
+        <div class="nav-label">Visão</div>
+        <a class="nav-link" href="home.html">Totais</a>
+        <a class="nav-link" href="caixa.html">Saldos</a>
+        <a class="nav-link" href="projecao.html">Projeção</a>
+        <div class="nav-label">Configurar</div>
+        <a class="nav-link active" href="compromissos.html">Compromissos</a>
+        <a class="nav-link" href="tags.html">Tags</a>
+        <a class="nav-link" href="menu.html">Menu</a>
+      </aside>
+      <main class="main">
+        <h1 class="page-title">Compromissos</h1>
+        <p class="page-sub">Quando a vida muda — salário, aluguel, chute do variável.</p>
+
+        <div class="tabs">
+          <a class="active" href="compromissos.html">Fixos</a>
+          <a href="compromissos.html#var">Variáveis</a>
+        </div>
+
+        <div class="list">
+          <div class="list-item">
+            <span class="badge income">Receita</span>
+            Salário · dia 5
+            <span class="amt pos">R$ 8.000</span>
+          </div>
+          <div class="list-item">
+            <span class="badge expense">Gasto</span>
+            Aluguel · dia 10
+            <span class="amt neg">R$ 2.000</span>
+          </div>
+          <div class="list-item">
+            <span class="badge expense">Gasto</span>
+            Internet · dia 15
+            <span class="amt neg">R$ 120</span>
+          </div>
+        </div>
+
+        <h2 id="var" class="section">Variáveis (estimativa)</h2>
+        <div class="list">
+          <div class="list-item">Mercado <span class="amt">R$ 800</span></div>
+          <div class="list-item">Lazer <span class="amt">R$ 300</span></div>
+        </div>
+
+        <div class="coach">
+          <div class="coach-title">Impacto na folga</div>
+          <p>
+            Com estes números, a folga do mês fica em
+            <strong style="color: var(--income)">R$ 4.780</strong>.
+            Baixar lazer para R$ 150 sobe a folga para ~R$ 4.930.
+          </p>
+          <a class="btn btn-primary" href="home.html">Ver mês</a>
+        </div>
+
+        <p class="wire-note">
+          Compromissos = dial do estilo de vida. Mudar aqui deve mostrar impacto na folga.
+        </p>
+      </main>
+    </div>
+  </body>
+</html>

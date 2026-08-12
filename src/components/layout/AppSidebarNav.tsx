@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  CalendarDays,
   FolderOpen,
   Menu,
   Repeat,
@@ -22,6 +23,12 @@ type NavLink = {
 };
 
 const visionLinks: NavLink[] = [
+  {
+    href: "/mapa-financeiro",
+    label: copy.nav.mapaFinanceiro,
+    title: copy.nav.mapaFinanceiroHint,
+    icon: CalendarDays,
+  },
   { href: "/totais", label: copy.nav.totais, icon: BarChart3 },
   { href: "/saldos", label: copy.nav.saldos, icon: Table2 },
   {

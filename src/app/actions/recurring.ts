@@ -19,6 +19,7 @@ function revalidateApp() {
   revalidatePath("/calendario");
   revalidatePath("/calendar");
   revalidatePath("/gastos-fixos");
+  revalidatePath("/mapa-financeiro");
   revalidatePath("/recorrentes");
   revalidatePath("/recurring");
 }

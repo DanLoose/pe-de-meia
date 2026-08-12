@@ -30,6 +30,7 @@ interface LedgerTableProps {
   initialData: LedgerMonthData;
   categories: CategoryDTO[];
   today: string;
+  onDataChange?: (data: LedgerMonthData) => void;
 }
 
 function monthLabel(year: number, month: number) {
@@ -95,6 +96,7 @@ export function LedgerTable({
   initialData,
   categories,
   today,
+  onDataChange,
 }: LedgerTableProps) {
   const router = useRouter();
   const [data, setData] = useState(initialData);
@@ -161,6 +163,7 @@ export function LedgerTable({
       const result = await fetchLedgerMonthAction(year, month);
       if (result.success && result.data) {
         setData(result.data);
+        onDataChange?.(result.data);
       }
     });
   };
@@ -233,7 +236,7 @@ export function LedgerTable({
                 return (
                   <tr
                     key={row.date}
-                    id={isToday ? `day-${row.date}` : undefined}
+                    id={`day-${row.date}`}
                     data-testid={`ledger-row-${row.date}`}
                     data-has-activity={hasActivity ? "true" : "false"}
                     className={cn(isToday && "bg-primary/5")}
