@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/AppShell";
 import { auth } from "@/lib/auth";
@@ -8,7 +9,11 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     redirect("/login");
   }
 
+  const pathname = (await headers()).get("x-pathname") ?? "/saldos";
+
   return (
-    <AppShell userEmail={session.user.email ?? ""}>{children}</AppShell>
+    <AppShell userEmail={session.user.email ?? ""} pathname={pathname}>
+      {children}
+    </AppShell>
   );
 }

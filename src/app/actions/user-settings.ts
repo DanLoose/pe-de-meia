@@ -51,6 +51,7 @@ export async function updateUserSettingsAction(
     revalidatePath("/menu");
     revalidatePath("/menu/configuracoes");
     revalidatePath("/menu/perfil");
+    revalidatePath("/comecar");
     revalidatePath("/saldos");
     revalidatePath("/horizonte");
     revalidatePath("/totais");

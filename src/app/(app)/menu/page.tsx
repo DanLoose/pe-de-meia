@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronRight, Calculator, Settings, User } from "lucide-react";
+import { Calculator, ChevronRight, CreditCard, Settings, User } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,6 +24,12 @@ function subscriptionLabel(status: string) {
 const links = [
   { href: "/menu/perfil", label: copy.menu.profile, icon: User },
   { href: "/menu/previsao-diario", label: copy.menu.forecast, icon: Calculator },
+  {
+    href: "/menu/configuracoes",
+    label: copy.menu.card,
+    description: copy.menu.cardDescription,
+    icon: CreditCard,
+  },
   { href: "/menu/configuracoes", label: copy.menu.settings, icon: Settings },
 ];
 
@@ -56,13 +62,20 @@ export default async function MenuPage() {
           const Icon = link.icon;
           return (
             <Link
-              key={link.href}
+              key={`${link.href}-${link.label}`}
               href={link.href}
               className="flex items-center justify-between rounded-lg border bg-card p-4 transition-colors hover:bg-muted/50"
             >
               <span className="flex items-center gap-3">
                 <Icon className="size-5 text-muted-foreground" />
-                {link.label}
+                <span>
+                  <span className="block">{link.label}</span>
+                  {"description" in link && link.description ? (
+                    <span className="block text-xs text-muted-foreground">
+                      {link.description}
+                    </span>
+                  ) : null}
+                </span>
               </span>
               <ChevronRight className="size-4 text-muted-foreground" />
             </Link>

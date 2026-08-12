@@ -32,6 +32,7 @@ export default async function TagsPage() {
         title={copy.categories.title}
         description={copy.categories.subtitle}
       />
+      <p className="text-sm text-muted-foreground">{copy.categories.intro}</p>
       <CategoryManager
         categories={categories}
         budgets={budgets}

@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
-  CalendarDays,
   FolderOpen,
   Menu,
   Repeat,
@@ -12,44 +11,80 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { copy } from "@/lib/copy";
+import { useHydrated } from "@/lib/hooks/use-hydrated";
 import { cn } from "@/lib/utils";
 
-const links = [
+type NavLink = {
+  href: string;
+  label: string;
+  icon: typeof Table2;
+  title?: string;
+};
+
+const dailyLinks: NavLink[] = [
   { href: "/saldos", label: copy.nav.saldos, icon: Table2 },
-  { href: "/totais", label: copy.nav.totais, icon: BarChart3 },
-  { href: "/horizonte", label: copy.nav.horizonte, icon: TrendingUp },
-  { href: "/calendario", label: copy.nav.calendar, icon: CalendarDays },
-  { href: "/tags", label: copy.nav.categories, icon: FolderOpen },
   { href: "/recorrentes", label: copy.nav.recurring, icon: Repeat },
+  { href: "/totais", label: copy.nav.totais, icon: BarChart3 },
+];
+
+const organizeLinks: NavLink[] = [
+  {
+    href: "/horizonte",
+    label: copy.nav.horizonte,
+    title: copy.nav.horizonteHint,
+    icon: TrendingUp,
+  },
+  { href: "/tags", label: copy.nav.categories, icon: FolderOpen },
   { href: "/menu", label: copy.nav.menu, icon: Menu },
 ];
 
 interface AppSidebarNavProps {
+  pathname?: string;
   collapsed?: boolean;
   onNavigate?: () => void;
   className?: string;
 }
 
-export function AppSidebarNav({
-  collapsed,
-  onNavigate,
-  className,
-}: AppSidebarNavProps) {
-  const pathname = usePathname();
+function isActive(activePath: string, href: string) {
+  return activePath === href || activePath.startsWith(`${href}/`);
+}
 
+function NavSection({
+  label,
+  links,
+  activePath,
+  collapsed,
+  hydrated,
+  onNavigate,
+}: {
+  label?: string;
+  links: NavLink[];
+  activePath: string;
+  collapsed?: boolean;
+  hydrated: boolean;
+  onNavigate?: () => void;
+}) {
   return (
-    <nav className={cn("flex flex-col gap-0.5", className)}>
+    <div className="space-y-0.5">
+      {label && !collapsed ? (
+        <p className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+          {label}
+        </p>
+      ) : null}
       {links.map((link) => {
         const Icon = link.icon;
-        const active =
-          pathname === link.href || pathname.startsWith(`${link.href}/`);
+        const active = isActive(activePath, link.href);
+        const title = hydrated
+          ? (link.title ?? (collapsed ? link.label : undefined))
+          : undefined;
 
         return (
           <Link
             key={link.href}
             href={link.href}
             onClick={onNavigate}
-            title={collapsed ? link.label : undefined}
+            title={title}
+            suppressHydrationWarning
             className={cn(
               "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
               collapsed && "justify-center px-2",
@@ -63,6 +98,38 @@ export function AppSidebarNav({
           </Link>
         );
       })}
+    </div>
+  );
+}
+
+export function AppSidebarNav({
+  pathname: serverPathname,
+  collapsed,
+  onNavigate,
+  className,
+}: AppSidebarNavProps) {
+  const clientPathname = usePathname();
+  const hydrated = useHydrated();
+  const activePath = hydrated ? clientPathname : (serverPathname ?? clientPathname);
+
+  return (
+    <nav className={cn("flex flex-col gap-1", className)}>
+      <NavSection
+        label={copy.nav.sectionDaily}
+        links={dailyLinks}
+        activePath={activePath}
+        collapsed={collapsed}
+        hydrated={hydrated}
+        onNavigate={onNavigate}
+      />
+      <NavSection
+        label={copy.nav.sectionOrganize}
+        links={organizeLinks}
+        activePath={activePath}
+        collapsed={collapsed}
+        hydrated={hydrated}
+        onNavigate={onNavigate}
+      />
     </nav>
   );
 }

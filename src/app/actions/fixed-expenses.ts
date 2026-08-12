@@ -53,6 +53,7 @@ export async function upsertFixedExpenseAction(
         });
 
     revalidatePath("/menu/previsao-diario");
+    revalidatePath("/comecar");
     revalidatePath("/totais");
     return { success: true, data };
   } catch (error) {
@@ -71,6 +72,7 @@ export async function deleteFixedExpenseAction(
     const userId = await getSessionUserId();
     await deleteFixedExpense(userId, id);
     revalidatePath("/menu/previsao-diario");
+    revalidatePath("/comecar");
     revalidatePath("/totais");
     return { success: true };
   } catch (error) {
@@ -92,6 +94,7 @@ export async function updateDailyDivisorAction(
     }
     await updateDailyDivisor(userId, dailyDivisor);
     revalidatePath("/menu/previsao-diario");
+    revalidatePath("/comecar");
     revalidatePath("/totais");
     revalidatePath("/menu/configuracoes");
     return { success: true };

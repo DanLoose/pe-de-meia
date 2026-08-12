@@ -62,7 +62,7 @@ export async function registerAction(
     await signIn("credentials", {
       email,
       password: parsed.data.password,
-      redirectTo: "/saldos",
+      redirectTo: "/comecar",
     });
   } catch (error) {
     if (error instanceof AuthError) {
