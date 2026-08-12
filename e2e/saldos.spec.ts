@@ -34,7 +34,7 @@ test.describe("Planilha de saldos", () => {
     await expect(
       page.getByRole("heading", { name: copy.ledger.income }),
     ).toBeVisible();
-    await page.getByRole("button", { name: copy.daySheet.addEntry }).click();
+    await page.getByRole("button", { name: copy.daySheet.addEntry }).first().click();
     await expect(
       page.getByRole("heading", { name: copy.entry.newIncome }),
     ).toBeVisible();
@@ -48,7 +48,7 @@ test.describe("Planilha de saldos", () => {
     await expect(
       page.getByRole("heading", { name: copy.ledger.expense }),
     ).toBeVisible();
-    await page.getByRole("button", { name: copy.daySheet.addEntry }).click();
+    await page.getByRole("button", { name: copy.daySheet.addEntry }).first().click();
     await expect(
       page.getByRole("heading", { name: copy.entry.newExpense }),
     ).toBeVisible();
@@ -62,7 +62,7 @@ test.describe("Planilha de saldos", () => {
     await expect(
       page.getByRole("heading", { name: copy.ledger.daily }),
     ).toBeVisible();
-    await page.getByRole("button", { name: copy.daySheet.addEntry }).click();
+    await page.getByRole("button", { name: copy.daySheet.addEntry }).first().click();
     await expect(
       page.getByRole("heading", { name: copy.entry.newExpense }),
     ).toBeVisible();
