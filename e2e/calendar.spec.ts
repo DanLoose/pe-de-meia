@@ -45,7 +45,7 @@ test.describe("Finance calendar", () => {
     const description = `Playwright expense ${Date.now()}`;
 
     await createExpenseEntry(page, {
-      amount: "88.88",
+      amount: "8888",
       date: testDate,
       description,
     });
@@ -64,7 +64,7 @@ test.describe("Finance calendar", () => {
     const description = `Entry to delete ${Date.now()}`;
 
     await createExpenseEntry(page, {
-      amount: "33.33",
+      amount: "3333",
       date: testDate,
       description,
     });

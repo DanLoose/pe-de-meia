@@ -2,7 +2,7 @@ import { z } from "zod";
 import { createTransactionSchema } from "@/lib/validators/transaction";
 
 export const createRecurringSchema = createTransactionSchema
-  .omit({ date: true })
+  .omit({ date: true, recurring: true })
   .extend({
     dayOfMonth: z.coerce.number().int().min(1).max(31),
   });

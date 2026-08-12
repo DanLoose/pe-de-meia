@@ -38,6 +38,8 @@ export const copy = {
     categoryPlaceholder: "Selecione uma categoria",
     note: "Observação",
     notePlaceholder: "Observação opcional",
+    recurring: "Recorrente",
+    recurringHint: (day: number) => `Repete todo mês no dia ${day}`,
     cancel: "Cancelar",
     create: "Criar",
     update: "Atualizar",

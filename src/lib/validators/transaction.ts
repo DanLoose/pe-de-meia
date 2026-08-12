@@ -8,6 +8,7 @@ export const createTransactionSchema = z.object({
   description: z.string().trim().max(500).optional(),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Invalid date format"),
   categoryId: z.string().min(1, "Category is required"),
+  recurring: z.boolean().optional(),
 });
 
 export const updateTransactionSchema = createTransactionSchema.extend({

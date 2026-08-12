@@ -155,15 +155,15 @@ export function DayDetailSheet({
   return (
     <>
       <Sheet open={open} onOpenChange={onOpenChange}>
-        <SheetContent className="flex w-full flex-col sm:max-w-md">
-          <SheetHeader>
+        <SheetContent className="flex w-full flex-col gap-5 p-6 sm:max-w-md">
+          <SheetHeader className="p-0 pr-8">
             <SheetTitle>
               {date ? formatDateLabel(date) : copy.daySheet.titleFallback}
             </SheetTitle>
             <SheetDescription>{copy.daySheet.description}</SheetDescription>
           </SheetHeader>
 
-          <div className="mt-4 grid grid-cols-3 gap-2 text-sm">
+          <div className="grid grid-cols-3 gap-2 text-sm">
             <div className="rounded-lg border p-3">
               <p className="text-muted-foreground">{copy.daySheet.income}</p>
               <p className={cn("font-medium", incomeClass())}>
@@ -184,7 +184,7 @@ export function DayDetailSheet({
             </div>
           </div>
 
-          <div className="mt-4 flex items-center justify-between">
+          <div className="flex items-center justify-between">
             <h3 className="font-medium">{copy.daySheet.entries}</h3>
             <Button
               size="sm"
@@ -199,9 +199,9 @@ export function DayDetailSheet({
             </Button>
           </div>
 
-          <Separator className="my-4" />
+          <Separator />
 
-          <div className="flex-1 space-y-3 overflow-y-auto pr-1">
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto">
             {isLoading && transactions.length === 0 && (
               <div className="flex items-center justify-center gap-2 py-8 text-sm text-muted-foreground">
                 <Loader2 className="size-4 animate-spin" />

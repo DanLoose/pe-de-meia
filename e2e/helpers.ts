@@ -23,7 +23,9 @@ export async function createExpenseEntry(
   await page.getByTestId("new-entry-button").click();
   await page.getByRole("heading", { name: copy.entry.new }).waitFor();
 
-  await page.getByTestId("entry-amount").fill(options.amount);
+  const amountField = page.getByTestId("entry-amount");
+  await amountField.click();
+  await amountField.pressSequentially(options.amount);
   await page.getByTestId("entry-date").fill(options.date);
   await page.getByTestId("entry-description").fill(options.description);
   await page.getByTestId("entry-submit").click();
