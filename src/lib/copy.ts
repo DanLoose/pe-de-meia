@@ -27,6 +27,8 @@ export const copy = {
   },
   entry: {
     new: "Novo lançamento",
+    newIncome: "Nova entrada",
+    newExpense: "Nova saída",
     edit: "Editar lançamento",
     description: "Registre uma receita ou despesa no calendário.",
     type: "Tipo",
@@ -108,6 +110,9 @@ export const copy = {
     nextDay: "Próximo dia",
     filterType: "Filtrar por tipo",
     filterAll: "Todos",
+    addIncome: "Adicionar entrada",
+    addExpense: "Adicionar saída",
+    openDay: "Ver lançamentos do dia",
   },
   empty: {
     calendarTitle: "Nenhum lançamento neste período",

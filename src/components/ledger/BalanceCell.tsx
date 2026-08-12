@@ -1,3 +1,4 @@
+import { ledgerCellClass } from "@/components/ledger/LedgerCells";
 import { ledgerBalanceClass } from "@/lib/design";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -7,6 +8,7 @@ interface BalanceCellProps {
   lowThreshold?: number;
   muted?: boolean;
   className?: string;
+  header?: boolean;
 }
 
 export function BalanceCell({
@@ -14,13 +16,16 @@ export function BalanceCell({
   lowThreshold,
   muted,
   className,
+  header,
 }: BalanceCellProps) {
   return (
     <td
       className={cn(
-        "px-3 py-1.5 text-right text-sm",
+        ledgerCellClass,
+        "cursor-default px-2.5 py-1.5 text-right text-sm",
         ledgerBalanceClass(value, lowThreshold, { muted }),
         !muted && value !== 0 && "font-semibold",
+        header && "font-medium",
         className,
       )}
     >

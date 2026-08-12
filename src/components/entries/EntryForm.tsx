@@ -22,7 +22,12 @@ import {
 } from "@/components/ui/select";
 import { copy } from "@/lib/copy";
 import { appToast } from "@/lib/toast";
-import type { ActionResult, CategoryDTO, TransactionDTO } from "@/types";
+import type {
+  ActionResult,
+  CategoryDTO,
+  LedgerColumn,
+  TransactionDTO,
+} from "@/types";
 
 interface EntryFormProps {
   open: boolean;
@@ -30,6 +35,9 @@ interface EntryFormProps {
   date: string | null;
   categories: CategoryDTO[];
   transaction?: TransactionDTO | null;
+  defaultType?: TransactionType;
+  lockType?: boolean;
+  ledgerColumn?: LedgerColumn;
   onSaved: (transaction: TransactionDTO) => void;
   createAction: (input: unknown) => Promise<ActionResult<TransactionDTO>>;
   updateAction: (input: unknown) => Promise<ActionResult<TransactionDTO>>;
@@ -62,6 +70,9 @@ function EntryFormFields({
   date,
   categories,
   transaction,
+  defaultType,
+  lockType,
+  ledgerColumn,
   onSaved,
   onOpenChange,
   createAction,
@@ -69,7 +80,7 @@ function EntryFormFields({
   showSuccessToast = true,
 }: EntryFormFieldsProps) {
   const [type, setType] = useState<TransactionType>(
-    transaction?.type ?? "EXPENSE",
+    transaction?.type ?? defaultType ?? "EXPENSE",
   );
   const [amount, setAmount] = useState(transaction?.amount ?? 0);
   const [description, setDescription] = useState(
@@ -121,6 +132,7 @@ function EntryFormFields({
       date: entryDate,
       categoryId: selectedCategoryId,
       recurring,
+      ...(ledgerColumn ? { ledgerColumn } : {}),
       ...(transaction ? { id: transaction.id } : {}),
     };
 
@@ -151,26 +163,34 @@ function EntryFormFields({
     <>
       <DialogHeader>
         <DialogTitle>
-          {transaction ? copy.entry.edit : copy.entry.new}
+          {transaction
+            ? copy.entry.edit
+            : lockType && type === "INCOME"
+              ? copy.entry.newIncome
+              : lockType && type === "EXPENSE"
+                ? copy.entry.newExpense
+                : copy.entry.new}
         </DialogTitle>
         <DialogDescription>{copy.entry.description}</DialogDescription>
       </DialogHeader>
 
       <form onSubmit={handleSubmit} className="space-y-4" data-testid="entry-form">
-        <div className="space-y-2">
-          <Label htmlFor="entry-type">{copy.entry.type}</Label>
-          <Select value={type} onValueChange={handleTypeChange}>
-            <SelectTrigger id="entry-type" className="w-full">
-              <span>
-                {type === "INCOME" ? copy.entry.income : copy.entry.expense}
-              </span>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="INCOME">{copy.entry.income}</SelectItem>
-              <SelectItem value="EXPENSE">{copy.entry.expense}</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        {!lockType && (
+          <div className="space-y-2">
+            <Label htmlFor="entry-type">{copy.entry.type}</Label>
+            <Select value={type} onValueChange={handleTypeChange}>
+              <SelectTrigger id="entry-type" className="w-full">
+                <span>
+                  {type === "INCOME" ? copy.entry.income : copy.entry.expense}
+                </span>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="INCOME">{copy.entry.income}</SelectItem>
+                <SelectItem value="EXPENSE">{copy.entry.expense}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="entry-amount">{copy.entry.amount}</Label>
@@ -277,7 +297,12 @@ function EntryFormFields({
 }
 
 export function EntryForm(props: EntryFormProps) {
-  const formKey = props.transaction?.id ?? props.date ?? "new";
+  const formKey = [
+    props.transaction?.id ?? "new",
+    props.date ?? "",
+    props.defaultType ?? "",
+    props.ledgerColumn ?? "",
+  ].join(":");
 
   return (
     <Dialog open={props.open} onOpenChange={props.onOpenChange}>
