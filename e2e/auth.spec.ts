@@ -4,7 +4,7 @@ import { copy } from "../src/lib/copy";
 
 test.describe("Authentication", () => {
   test("redirects unauthenticated users to login", async ({ page }) => {
-    await page.goto("/calendar");
+    await page.goto("/totais");
     await expect(page).toHaveURL(/\/login/);
   });
 
@@ -12,7 +12,7 @@ test.describe("Authentication", () => {
     await loginAsDemo(page);
 
     await expect(
-      page.getByRole("heading", { name: copy.calendarTitle }),
+      page.getByRole("heading", { name: copy.totals.title }),
     ).toBeVisible();
     await expect(page.getByText(DEMO_EMAIL)).toBeVisible();
   });
@@ -26,9 +26,9 @@ test.describe("Authentication", () => {
     await page.getByLabel(copy.auth.password).fill("password123");
     await page.getByRole("button", { name: copy.auth.createAccount }).click();
 
-    await page.waitForURL("/calendar");
+    await page.waitForURL("/comecar");
     await expect(
-      page.getByRole("heading", { name: copy.calendarTitle }),
+      page.getByRole("heading", { name: copy.onboarding.title }),
     ).toBeVisible();
   });
 });

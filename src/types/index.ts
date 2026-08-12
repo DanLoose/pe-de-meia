@@ -100,11 +100,18 @@ export interface LedgerMonthData {
   };
 }
 
+export type TotalsVerdict = "surplus" | "tight" | "deficit" | "empty";
+
 export interface MonthTotalsData {
   year: number;
   month: number;
+  /** Folga = fixedIncome − costOfLiving (kept as `performance` for compat). */
   performance: number;
   performanceStatus: string;
+  fixedIncome: number;
+  fixedExpense: number;
+  setupComplete: boolean;
+  verdict: TotalsVerdict;
   saved: number;
   savedPercent: number;
   savedStatus: string;
@@ -112,6 +119,8 @@ export interface MonthTotalsData {
   costOfLivingStatus: string;
   dailyAverage: number;
   dailyCeiling: number | null;
+  /** Monthly sum of variable expense estimate (`FixedMonthlyExpense`). */
+  variableEstimate: number | null;
   dailyStatus: string;
   totalIncome: number;
   totalExpense: number;

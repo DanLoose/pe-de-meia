@@ -4,6 +4,7 @@ import { TotalsDashboard } from "@/components/totals/TotalsDashboard";
 import { auth } from "@/lib/auth";
 import { copy } from "@/lib/copy";
 import { getMonthTotals } from "@/lib/services/totals";
+import { getOnboardingStatus } from "@/lib/services/onboarding";
 import { redirect } from "next/navigation";
 
 interface TotaisPageProps {
@@ -14,6 +15,11 @@ export default async function TotaisPage({ searchParams }: TotaisPageProps) {
   const session = await auth();
   if (!session?.user?.id) {
     redirect("/login");
+  }
+
+  const onboardingStatus = await getOnboardingStatus(session.user.id);
+  if (onboardingStatus.needsOnboarding) {
+    redirect("/comecar");
   }
 
   const params = await searchParams;

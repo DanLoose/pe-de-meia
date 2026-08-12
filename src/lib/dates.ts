@@ -23,28 +23,18 @@ export function utcToday(): Date {
   );
 }
 
-/** First occurrence on or after today for a recurring rule's day-of-month. */
+/**
+ * Occurrence date in the reference month for a recurring rule's day-of-month.
+ * Past days in the month are kept so Folga and materialization include the
+ * current month (new commitments apply immediately).
+ */
 export function defaultRecurringStartsOn(
   dayOfMonth: number,
   reference: Date = utcToday(),
 ): Date {
-  let year = reference.getUTCFullYear();
-  let month = reference.getUTCMonth();
+  const year = reference.getUTCFullYear();
+  const month = reference.getUTCMonth();
   const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
   const day = Math.min(dayOfMonth, lastDay);
-  let candidate = new Date(Date.UTC(year, month, day));
-
-  if (candidate < reference) {
-    month += 1;
-    if (month > 11) {
-      month = 0;
-      year += 1;
-    }
-    const nextLastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-    candidate = new Date(
-      Date.UTC(year, month, Math.min(dayOfMonth, nextLastDay)),
-    );
-  }
-
-  return candidate;
+  return new Date(Date.UTC(year, month, day));
 }

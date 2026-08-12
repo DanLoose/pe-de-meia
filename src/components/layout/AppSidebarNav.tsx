@@ -21,19 +21,19 @@ type NavLink = {
   title?: string;
 };
 
-const dailyLinks: NavLink[] = [
-  { href: "/saldos", label: copy.nav.saldos, icon: Table2 },
-  { href: "/gastos-fixos", label: copy.nav.gastosFixos, icon: Repeat },
+const visionLinks: NavLink[] = [
   { href: "/totais", label: copy.nav.totais, icon: BarChart3 },
-];
-
-const organizeLinks: NavLink[] = [
+  { href: "/saldos", label: copy.nav.saldos, icon: Table2 },
   {
     href: "/horizonte",
     label: copy.nav.horizonte,
     title: copy.nav.horizonteHint,
     icon: TrendingUp,
   },
+];
+
+const configureLinks: NavLink[] = [
+  { href: "/gastos-fixos", label: copy.nav.gastosFixos, icon: Repeat },
   { href: "/tags", label: copy.nav.categories, icon: FolderOpen },
   { href: "/menu", label: copy.nav.menu, icon: Menu },
 ];
@@ -116,7 +116,7 @@ export function AppSidebarNav({
     <nav className={cn("flex flex-col gap-1", className)}>
       <NavSection
         label={copy.nav.sectionDaily}
-        links={dailyLinks}
+        links={visionLinks}
         activePath={activePath}
         collapsed={collapsed}
         hydrated={hydrated}
@@ -124,7 +124,7 @@ export function AppSidebarNav({
       />
       <NavSection
         label={copy.nav.sectionOrganize}
-        links={organizeLinks}
+        links={configureLinks}
         activePath={activePath}
         collapsed={collapsed}
         hydrated={hydrated}

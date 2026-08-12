@@ -17,7 +17,7 @@ export const authConfig = {
       }
 
       if (isLoggedIn && (isAuthRoute || pathname === "/")) {
-        return Response.redirect(new URL("/saldos", request.nextUrl));
+        return Response.redirect(new URL("/totais", request.nextUrl));
       }
 
       return true;

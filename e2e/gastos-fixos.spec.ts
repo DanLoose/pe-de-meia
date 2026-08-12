@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { copy } from "../src/lib/copy";
 import { loginAsDemo } from "./helpers";
 
-test.describe("Gastos fixos", () => {
+test.describe("Compromissos", () => {
   test.beforeEach(async ({ page }) => {
     await loginAsDemo(page);
   });
