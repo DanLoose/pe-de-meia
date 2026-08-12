@@ -157,6 +157,14 @@ export interface FixedExpenseDTO {
   sortOrder: number;
 }
 
+export interface OnboardingStatus {
+  needsOnboarding: boolean;
+  hasOpeningBalance: boolean;
+  hasRecurring: boolean;
+  hasDailyForecast: boolean;
+  hasTransactions: boolean;
+}
+
 export interface UserSettingsDTO {
   openingBalance: number;
   dailyDivisor: number;

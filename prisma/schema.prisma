@@ -44,6 +44,7 @@ model User {
   subscriptionStatus SubscriptionStatus     @default(TRIAL)
   subscriptionEndsAt DateTime?
   dailyDivisor       Int                    @default(30)
+  onboardingCompletedAt DateTime?
   createdAt          DateTime               @default(now())
   updatedAt          DateTime               @updatedAt
   accounts           Account[]

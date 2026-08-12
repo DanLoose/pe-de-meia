@@ -50,6 +50,15 @@ export const LEDGER_COLUMN_LABELS: Record<LedgerColumn, string> = {
   CARD: "Cartão",
 };
 
+/** Plain-language labels for tag forms and onboarding. */
+export const LEDGER_COLUMN_FRIENDLY_LABELS: Record<LedgerColumn, string> = {
+  INCOME: "Entra na conta",
+  EXPENSE: "Conta fixa / boleto",
+  DAILY: "Gasto do dia a dia",
+  SAVINGS: "Guardei / investi",
+  CARD: "Compra no crédito",
+};
+
 export function ledgerColumnHint(column: LedgerColumn): string {
   return copy.domain.columnHint[column];
 }
@@ -62,11 +71,9 @@ export function cardEntryKindLabel(affectsBalance: boolean): string {
 
 export const DEFAULT_CATEGORY_LEDGER: Record<string, PrismaLedgerColumn> = {
   Salário: "INCOME",
-  Freelance: "INCOME",
-  "Outras receitas": "INCOME",
-  Alimentação: "DAILY",
   Moradia: "EXPENSE",
-  Transporte: "DAILY",
   Contas: "EXPENSE",
-  "Outras despesas": "EXPENSE",
+  Alimentação: "DAILY",
+  Diário: "DAILY",
+  Fatura: "CARD",
 };

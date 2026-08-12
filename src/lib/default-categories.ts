@@ -10,13 +10,10 @@ export type DefaultCategory = {
 
 export const DEFAULT_CATEGORIES: DefaultCategory[] = [
   { name: "Salário", color: "#22c55e", type: "INCOME", ledgerColumn: "INCOME" },
-  { name: "Freelance", color: "#10b981", type: "INCOME", ledgerColumn: "INCOME" },
-  { name: "Outras receitas", color: "#14b8a6", type: "INCOME", ledgerColumn: "INCOME" },
-  { name: "Alimentação", color: "#ef4444", type: "EXPENSE", ledgerColumn: "DAILY" },
   { name: "Moradia", color: "#f97316", type: "EXPENSE", ledgerColumn: "EXPENSE" },
-  { name: "Transporte", color: "#eab308", type: "EXPENSE", ledgerColumn: "DAILY" },
   { name: "Contas", color: "#a855f7", type: "EXPENSE", ledgerColumn: "EXPENSE" },
-  { name: "Outras despesas", color: "#64748b", type: "EXPENSE", ledgerColumn: "EXPENSE" },
+  { name: "Alimentação", color: "#ef4444", type: "EXPENSE", ledgerColumn: "DAILY" },
+  { name: "Diário", color: "#06b6d4", type: "EXPENSE", ledgerColumn: "DAILY" },
   { name: "Fatura", color: "#6366f1", type: "EXPENSE", ledgerColumn: "CARD" },
 ];
 

@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/select";
 import { CATEGORY_COLOR_OPTIONS } from "@/lib/category-colors";
 import { copy } from "@/lib/copy";
-import { LEDGER_COLUMN_LABELS } from "@/lib/ledger-columns";
+import { LEDGER_COLUMN_FRIENDLY_LABELS, LEDGER_COLUMN_LABELS, ledgerColumnHint } from "@/lib/ledger-columns";
 import { formatCurrency } from "@/lib/format";
 import { appToast } from "@/lib/toast";
 import type { CategoryBudgetDTO, CategoryDTO, LedgerColumn, TransactionType } from "@/types";
@@ -354,18 +354,21 @@ export function CategoryManager({
                 }
               >
                 <SelectTrigger className="w-full">
-                  <span>{LEDGER_COLUMN_LABELS[form.ledgerColumn]}</span>
+                  <span>{LEDGER_COLUMN_FRIENDLY_LABELS[form.ledgerColumn]}</span>
                 </SelectTrigger>
                 <SelectContent>
-                  {(Object.keys(LEDGER_COLUMN_LABELS) as LedgerColumn[]).map(
+                  {(Object.keys(LEDGER_COLUMN_FRIENDLY_LABELS) as LedgerColumn[]).map(
                     (column) => (
                       <SelectItem key={column} value={column}>
-                        {LEDGER_COLUMN_LABELS[column]}
+                        {LEDGER_COLUMN_FRIENDLY_LABELS[column]}
                       </SelectItem>
                     ),
                   )}
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground">
+                {ledgerColumnHint(form.ledgerColumn)}
+              </p>
             </div>
             <div className="space-y-2">
               <Label>{copy.categories.color}</Label>

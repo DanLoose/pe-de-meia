@@ -1,11 +1,24 @@
 import NextAuth from "next-auth";
+import { NextResponse } from "next/server";
 import { authConfig } from "@/lib/auth.config";
 
-export default NextAuth(authConfig).auth;
+const { auth } = NextAuth(authConfig);
+
+export default auth((request) => {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set("x-pathname", request.nextUrl.pathname);
+
+  return NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
+});
 
 export const config = {
   matcher: [
     "/",
+    "/comecar/:path*",
     "/saldos/:path*",
     "/totais/:path*",
     "/horizonte/:path*",

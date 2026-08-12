@@ -13,6 +13,7 @@ import type { ActionResult, RecurringTransactionDTO } from "@/types";
 
 function revalidateApp() {
   revalidatePath("/saldos");
+  revalidatePath("/comecar");
   revalidatePath("/totais");
   revalidatePath("/horizonte");
   revalidatePath("/calendario");

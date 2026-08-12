@@ -22,6 +22,7 @@ import { cn } from "@/lib/utils";
 
 interface AppSidebarProps {
   userEmail: string;
+  pathname: string;
 }
 
 function useSidebarCollapsed() {
@@ -32,7 +33,7 @@ function useSidebarCollapsed() {
   );
 }
 
-export function AppSidebar({ userEmail }: AppSidebarProps) {
+export function AppSidebar({ userEmail, pathname }: AppSidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false);
   const collapsed = useSidebarCollapsed();
 
@@ -54,6 +55,7 @@ export function AppSidebar({ userEmail }: AppSidebarProps) {
 
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-3 py-4">
           <AppSidebarNav
+            pathname={pathname}
             collapsed={isCollapsed}
             onNavigate={options.mobile ? closeMobile : undefined}
           />
