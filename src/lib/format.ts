@@ -25,6 +25,29 @@ export function formatShortDateLabel(date: string): string {
   }).format(new Date(year, month - 1, day));
 }
 
+/** Numeric day/month, e.g. 10/08. */
+export function formatNumericDateLabel(date: string): string {
+  const [, month, day] = date.split("-");
+  return `${day}/${month}`;
+}
+
+/** Compact slash date, e.g. 07/08/26. */
+export function formatSlashDate(date: string): string {
+  const [year, month, day] = date.split("-");
+  return `${day}/${month}/${year.slice(2)}`;
+}
+
+/** Compact header date, e.g. 10/ago. */
+export function formatCompactDateLabel(date: string): string {
+  const [year, month, day] = date.split("-").map(Number);
+  const monthShort = new Intl.DateTimeFormat("pt-BR", { month: "short" })
+    .format(new Date(year, month - 1, day))
+    .replace(".", "")
+    .trim()
+    .toLowerCase();
+  return `${String(day).padStart(2, "0")}/${monthShort}`;
+}
+
 /** Compact currency for dense grids (e.g. horizonte). */
 export function formatCompactCurrency(value: number): string {
   const abs = Math.abs(value);
