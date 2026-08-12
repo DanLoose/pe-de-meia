@@ -15,3 +15,10 @@ export function getMonthDateRange(year: number, month: number) {
   const end = new Date(Date.UTC(year, month, 0));
   return { start, end };
 }
+
+export function utcToday(): Date {
+  const now = new Date();
+  return new Date(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()),
+  );
+}

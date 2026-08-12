@@ -32,7 +32,12 @@ export function ProfileFormClient({ settings }: ProfileFormClientProps) {
 
   return (
     <div className="space-y-[var(--section-gap)]">
-      <PageHeader title={copy.profile.title} description={copy.profile.subtitle} />
+      <PageHeader
+        title={copy.profile.title}
+        description={copy.profile.subtitle}
+        backHref="/menu"
+        backLabel={copy.menu.back}
+      />
       <form action={handleSubmit} className="max-w-md space-y-4">
         <div className="space-y-2">
           <Label htmlFor="name">{copy.profile.name}</Label>

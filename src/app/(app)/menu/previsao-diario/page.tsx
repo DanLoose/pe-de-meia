@@ -18,6 +18,9 @@ export default async function PrevisaoDiarioPage() {
       <PageHeader
         title={copy.forecast.title}
         description={copy.forecast.subtitle}
+        backHref="/menu"
+        backLabel={copy.menu.back}
+        inlineBack
       />
       <DailyForecastManager initialData={forecast} />
     </div>

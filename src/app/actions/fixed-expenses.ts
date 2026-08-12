@@ -23,7 +23,7 @@ export async function fetchFixedExpensesAction(): Promise<
     return {
       success: false,
       error:
-        error instanceof Error ? error.message : "Não foi possível carregar os gastos fixos",
+        error instanceof Error ? error.message : "Não foi possível carregar a previsão de diário",
     };
   }
 }
