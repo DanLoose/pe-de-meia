@@ -1,20 +1,34 @@
-import { prisma } from "@/lib/db";
-import { formatDateOnly, parseDateOnly } from "@/lib/dates";
-import { cashDelta, defaultAffectsBalance } from "@/lib/cash";
+import { cashDelta } from "@/lib/cash";
+import { futureCashDeltaByDate } from "@/lib/horizon-cash";
+import {
+  projectedRecurringNetForDate,
+  recurringMovementForDate,
+  type HorizonRuleInput,
+} from "@/lib/horizon-recurring";
+import {
+  HORIZON_VARIABLE_ESTIMATE_ENABLED,
+  buildVariableEstimateBurn,
+  variableEstimateMovement,
+} from "@/lib/horizon-variable";
 import { resolveLedgerColumn } from "@/lib/ledger-columns";
 import { ledgerRowHasActivity } from "@/lib/design";
 import { ensureCardInvoices } from "@/lib/services/card";
+import { getDailyCeiling } from "@/lib/services/fixed-expenses";
 import { getLedgerMonth, getUserOpeningBalance } from "@/lib/services/ledger";
 import { ensureRecurringTransactions } from "@/lib/services/recurring";
+import { copy } from "@/lib/copy";
 import type {
   HorizonData,
   HorizonDayCell,
+  HorizonDayMovement,
   HorizonMonthColumn,
   HorizonSummary,
 } from "@/types";
+import { prisma } from "@/lib/db";
+import { formatDateOnly, parseDateOnly } from "@/lib/dates";
 
 const DEFAULT_LOW_THRESHOLD = 500;
-const DEFAULT_MONTHS = 3;
+const DEFAULT_MONTHS = 12;
 
 function daysInMonth(year: number, month: number): number {
   return new Date(Date.UTC(year, month, 0)).getUTCDate();
@@ -41,44 +55,31 @@ function netEffectForColumn(
   return cashDelta(column, amount, affectsBalance);
 }
 
-async function getRecurringRules(userId: string) {
-  return prisma.recurringTransaction.findMany({
+async function getRecurringRules(userId: string): Promise<HorizonRuleInput[]> {
+  const rules = await prisma.recurringTransaction.findMany({
     where: { userId, active: true },
     include: { category: true },
   });
-}
 
-function projectedRecurringForDate(
-  rules: Awaited<ReturnType<typeof getRecurringRules>>,
-  dateStr: string,
-): number {
-  const date = parseDateOnly(dateStr);
-  const day = date.getUTCDate();
-  const lastDay = daysInMonth(
-    date.getUTCFullYear(),
-    date.getUTCMonth() + 1,
-  );
-
-  let net = 0;
-  for (const rule of rules) {
-    const ruleDay = Math.min(rule.dayOfMonth, lastDay);
-    if (ruleDay !== day) continue;
-
-    const column = resolveLedgerColumn(null, rule.category.ledgerColumn);
-    net += netEffectForColumn(
-      column,
-      Number(rule.amount),
-      defaultAffectsBalance(column),
-    );
-  }
-
-  return net;
+  return rules.map((rule) => ({
+    id: rule.id,
+    type: rule.type,
+    amount: Number(rule.amount),
+    description: rule.description,
+    dayOfMonth: rule.dayOfMonth,
+    startsOn: formatDateOnly(rule.startsOn),
+    endsOn: rule.endsOn ? formatDateOnly(rule.endsOn) : null,
+    categoryName: rule.category.name,
+    categoryLedgerColumn: rule.category.ledgerColumn,
+  }));
 }
 
 function buildSummary(
   today: string,
   balanceByDate: Map<string, number>,
   endDate: string,
+  totalIncome: number,
+  totalExpense: number,
 ): HorizonSummary {
   const currentBalance = balanceByDate.get(today) ?? 0;
 
@@ -113,7 +114,111 @@ function buildSummary(
     lowestDate,
     firstNegativeDate,
     firstNegativeBalance,
+    totalIncome,
+    totalExpense,
   };
+}
+
+function accumulateHorizonFlows(
+  months: HorizonMonthColumn[],
+  today: string,
+): { totalIncome: number; totalExpense: number } {
+  let totalIncome = 0;
+  let totalExpense = 0;
+
+  for (const month of months) {
+    for (const day of month.days) {
+      if (day.date < today) continue;
+      for (const movement of day.movements) {
+        if (movement.cashDelta > 0) totalIncome += movement.cashDelta;
+        else if (movement.cashDelta < 0) totalExpense += -movement.cashDelta;
+      }
+    }
+  }
+
+  return {
+    totalIncome: Math.round(totalIncome * 100) / 100,
+    totalExpense: Math.round(totalExpense * 100) / 100,
+  };
+}
+
+function buildDayMovements(
+  dateStr: string,
+  today: string,
+  rules: HorizonRuleInput[],
+  txs: Array<{
+    id: string;
+    type: HorizonDayMovement["type"];
+    amount: number;
+    description: string | null;
+    recurringId: string | null;
+    ledgerColumn: HorizonDayMovement["ledgerColumn"] | null;
+    categoryName: string;
+    categoryLedgerColumn: HorizonDayMovement["ledgerColumn"];
+    affectsBalance: boolean;
+  }>,
+  variableBurnByDate: Map<string, number>,
+): HorizonDayMovement[] {
+  const movements: HorizonDayMovement[] = [];
+  const coveredRuleIds = new Set<string>();
+
+  if (dateStr > today) {
+    for (const rule of rules) {
+      const item = recurringMovementForDate(rule, dateStr);
+      if (!item) continue;
+      coveredRuleIds.add(rule.id);
+      movements.push(item);
+    }
+
+    for (const tx of txs) {
+      if (tx.recurringId && coveredRuleIds.has(tx.recurringId)) continue;
+      if (!tx.affectsBalance) continue;
+      const column = resolveLedgerColumn(
+        tx.ledgerColumn,
+        tx.categoryLedgerColumn,
+      );
+      movements.push({
+        id: tx.id,
+        source: tx.recurringId ? "recurring" : "transaction",
+        ruleId: tx.recurringId ?? undefined,
+        label: tx.description?.trim() || tx.categoryName,
+        amount: tx.amount,
+        type: tx.type,
+        ledgerColumn: column,
+        cashDelta: cashDelta(column, tx.amount, tx.affectsBalance),
+      });
+    }
+
+    const estimateAmount = variableBurnByDate.get(dateStr) ?? 0;
+    if (estimateAmount > 0) {
+      movements.push(
+        variableEstimateMovement(
+          dateStr,
+          estimateAmount,
+          copy.horizon.variableEstimateLabel,
+        ),
+      );
+    }
+  } else {
+    for (const tx of txs) {
+      const column = resolveLedgerColumn(
+        tx.ledgerColumn,
+        tx.categoryLedgerColumn,
+      );
+      movements.push({
+        id: tx.id,
+        source: tx.recurringId ? "recurring" : "transaction",
+        ruleId: tx.recurringId ?? undefined,
+        label: tx.description?.trim() || tx.categoryName,
+        amount: tx.amount,
+        type: tx.type,
+        ledgerColumn: column,
+        cashDelta: cashDelta(column, tx.amount, tx.affectsBalance),
+      });
+    }
+  }
+
+  return movements;
 }
 
 function buildDayCell(
@@ -121,7 +226,7 @@ function buildDayCell(
   today: string,
   balance: number,
   prevBalance: number,
-  recurringDelta: number,
+  movements: HorizonDayMovement[],
   hasPastMovement: boolean,
 ): HorizonDayCell {
   const isPast = dateStr < today;
@@ -135,8 +240,11 @@ function buildDayCell(
     isToday,
     isFuture,
     isProjected: isFuture,
-    hasRecurring: isFuture ? recurringDelta !== 0 : hasPastMovement,
+    hasRecurring: isFuture
+      ? movements.length > 0
+      : hasPastMovement || movements.length > 0,
     delta: balance - prevBalance,
+    movements,
   };
 }
 
@@ -144,11 +252,18 @@ export async function getHorizon(
   userId: string,
   startDate: string,
   months = DEFAULT_MONTHS,
-  lowThreshold = DEFAULT_LOW_THRESHOLD,
+  {
+    lowThreshold = DEFAULT_LOW_THRESHOLD,
+    includeVariableEstimate = true,
+  }: {
+    lowThreshold?: number;
+    includeVariableEstimate?: boolean;
+  } = {},
 ): Promise<HorizonData> {
   const today = startDate;
   const [year, month] = today.split("-").map(Number);
   const endDate = addDays(today, months * 31);
+  const monthStart = `${year}-${String(month).padStart(2, "0")}-01`;
 
   await ensureRecurringTransactions(userId, today, endDate);
   await ensureCardInvoices(userId, today, endDate);
@@ -169,7 +284,10 @@ export async function getHorizon(
   if (!todayRow) {
     balance = Number(await getUserOpeningBalance(userId));
     for (const tx of pastTransactions) {
-      const column = resolveLedgerColumn(tx.ledgerColumn, tx.category.ledgerColumn);
+      const column = resolveLedgerColumn(
+        tx.ledgerColumn,
+        tx.category.ledgerColumn,
+      );
       balance += netEffectForColumn(
         column,
         Number(tx.amount),
@@ -180,24 +298,93 @@ export async function getHorizon(
 
   const rules = await getRecurringRules(userId);
 
-  const futurePayments = await prisma.transaction.findMany({
+  const rangeTxs = await prisma.transaction.findMany({
     where: {
       userId,
-      date: { gt: parseDateOnly(today), lte: parseDateOnly(endDate) },
-      ledgerColumn: "CARD",
-      affectsBalance: true,
+      date: {
+        gte: parseDateOnly(monthStart),
+        lte: parseDateOnly(endDate),
+      },
     },
+    include: { category: true },
+    orderBy: [{ date: "asc" }, { createdAt: "asc" }],
   });
 
-  const paymentDeltaByDate = new Map<string, number>();
-  for (const tx of futurePayments) {
+  const txsByDate = new Map<
+    string,
+    Array<{
+      id: string;
+      type: HorizonDayMovement["type"];
+      amount: number;
+      description: string | null;
+      recurringId: string | null;
+      ledgerColumn: HorizonDayMovement["ledgerColumn"] | null;
+      categoryName: string;
+      categoryLedgerColumn: HorizonDayMovement["ledgerColumn"];
+      affectsBalance: boolean;
+    }>
+  >();
+
+  for (const tx of rangeTxs) {
     const dateStr = formatDateOnly(tx.date);
-    paymentDeltaByDate.set(
-      dateStr,
-      (paymentDeltaByDate.get(dateStr) ?? 0) +
-        cashDelta("CARD", Number(tx.amount), true),
-    );
+    const list = txsByDate.get(dateStr) ?? [];
+    list.push({
+      id: tx.id,
+      type: tx.type,
+      amount: Number(tx.amount),
+      description: tx.description,
+      recurringId: tx.recurringId,
+      ledgerColumn: tx.ledgerColumn,
+      categoryName: tx.category.name,
+      categoryLedgerColumn: tx.category.ledgerColumn,
+      affectsBalance: tx.affectsBalance,
+    });
+    txsByDate.set(dateStr, list);
   }
+
+  const futureCashTxs = rangeTxs.filter(
+    (tx) => formatDateOnly(tx.date) > today && tx.affectsBalance,
+  );
+
+  const cashDeltaByDate = futureCashDeltaByDate(
+    futureCashTxs.map((tx) => ({
+      date: formatDateOnly(tx.date),
+      amount: Number(tx.amount),
+      ledgerColumn: tx.ledgerColumn,
+      categoryLedgerColumn: tx.category.ledgerColumn,
+      affectsBalance: tx.affectsBalance,
+      recurringId: tx.recurringId,
+    })),
+  );
+
+  const ceiling = await getDailyCeiling(userId);
+  const monthlyVariableEstimate = ceiling.totalFixed;
+
+  let spentVariableCurrentMonth = 0;
+  for (const tx of rangeTxs) {
+    const dateStr = formatDateOnly(tx.date);
+    if (dateStr > today) continue;
+    const [ty, tm] = today.split("-").map(Number);
+    const [dy, dm] = dateStr.split("-").map(Number);
+    if (dy !== ty || dm !== tm) continue;
+    const column = resolveLedgerColumn(
+      tx.ledgerColumn,
+      tx.category.ledgerColumn,
+    );
+    if (column === "DAILY") {
+      spentVariableCurrentMonth += Number(tx.amount);
+    }
+  }
+
+  const variableBurnByDate =
+    HORIZON_VARIABLE_ESTIMATE_ENABLED && includeVariableEstimate
+      ? buildVariableEstimateBurn({
+          today,
+          endDate,
+          monthlyEstimate: monthlyVariableEstimate,
+          spentInCurrentMonth: spentVariableCurrentMonth,
+        })
+      : new Map<string, number>();
 
   const balanceByDate = new Map<string, number>();
   let cursor = today;
@@ -205,8 +392,9 @@ export async function getHorizon(
 
   while (cursor <= endDate) {
     if (cursor > today) {
-      running += projectedRecurringForDate(rules, cursor);
-      running += paymentDeltaByDate.get(cursor) ?? 0;
+      running += projectedRecurringNetForDate(rules, cursor);
+      running += cashDeltaByDate.get(cursor) ?? 0;
+      running -= variableBurnByDate.get(cursor) ?? 0;
     }
     balanceByDate.set(cursor, running);
     cursor = addDays(cursor, 1);
@@ -259,9 +447,13 @@ export async function getHorizon(
         continue;
       }
 
-      const recurringDelta =
-        projectedRecurringForDate(rules, dateStr) +
-        (paymentDeltaByDate.get(dateStr) ?? 0);
+      const movements = buildDayMovements(
+        dateStr,
+        today,
+        rules,
+        txsByDate.get(dateStr) ?? [],
+        variableBurnByDate,
+      );
       const pastRow = ledgerRowByDate.get(dateStr);
       const hasPastMovement = pastRow ? ledgerRowHasActivity(pastRow) : false;
       const prevBalance = previousBalance(dateStr);
@@ -272,7 +464,7 @@ export async function getHorizon(
           today,
           cellBalance,
           prevBalance,
-          recurringDelta,
+          movements,
           hasPastMovement,
         ),
       );
@@ -292,11 +484,19 @@ export async function getHorizon(
     }
   }
 
+  const flows = accumulateHorizonFlows(monthColumns, today);
+
   return {
     today,
     monthsCount: months,
     months: monthColumns,
     lowThreshold,
-    summary: buildSummary(today, balanceByDate, endDate),
+    summary: buildSummary(
+      today,
+      balanceByDate,
+      endDate,
+      flows.totalIncome,
+      flows.totalExpense,
+    ),
   };
 }

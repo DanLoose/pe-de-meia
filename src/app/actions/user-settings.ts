@@ -5,7 +5,9 @@ import { z } from "zod";
 import { getSessionUserId } from "@/lib/auth";
 import { CARD_DAY_MAX, CARD_DAY_MIN } from "@/lib/card-cycle";
 import {
+  getAvailableBalance,
   getUserSettings,
+  setAvailableBalance,
   updateUserSettings,
 } from "@/lib/services/user-settings";
 import type { ActionResult, UserSettingsDTO } from "@/types";
@@ -24,6 +26,26 @@ const settingsSchema = z.object({
   cardDueDay: cardDaySchema.optional(),
 });
 
+const availableBalanceSchema = z.object({
+  amount: z.coerce.number(),
+  asOfDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+});
+
+function revalidateBalancePaths() {
+  revalidatePath("/menu");
+  revalidatePath("/menu/configuracoes");
+  revalidatePath("/menu/perfil");
+  revalidatePath("/comecar");
+  revalidatePath("/saldos");
+  revalidatePath("/horizonte");
+  revalidatePath("/mapa-financeiro");
+  revalidatePath("/extrato");
+  revalidatePath("/totais");
+}
+
 export async function fetchUserSettingsAction(): Promise<
   ActionResult<UserSettingsDTO>
 > {
@@ -35,7 +57,9 @@ export async function fetchUserSettingsAction(): Promise<
     return {
       success: false,
       error:
-        error instanceof Error ? error.message : "Não foi possível carregar as configurações",
+        error instanceof Error
+          ? error.message
+          : "Não foi possível carregar as configurações",
     };
   }
 }
@@ -48,13 +72,7 @@ export async function updateUserSettingsAction(
     const parsed = settingsSchema.parse(input);
     const data = await updateUserSettings(userId, parsed);
 
-    revalidatePath("/menu");
-    revalidatePath("/menu/configuracoes");
-    revalidatePath("/menu/perfil");
-    revalidatePath("/comecar");
-    revalidatePath("/saldos");
-    revalidatePath("/horizonte");
-    revalidatePath("/totais");
+    revalidateBalancePaths();
 
     return { success: true, data };
   } catch (error) {
@@ -64,6 +82,44 @@ export async function updateUserSettingsAction(
         error instanceof Error
           ? error.message
           : "Não foi possível salvar as configurações",
+    };
+  }
+}
+
+export async function setAvailableBalanceAction(
+  input: unknown,
+): Promise<ActionResult<{ amount: number }>> {
+  try {
+    const userId = await getSessionUserId();
+    const parsed = availableBalanceSchema.parse(input);
+    await setAvailableBalance(userId, parsed.amount, parsed.asOfDate);
+    revalidateBalancePaths();
+    return { success: true, data: { amount: parsed.amount } };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Não foi possível atualizar o saldo da conta",
+    };
+  }
+}
+
+export async function fetchAvailableBalanceAction(
+  asOfDate?: string,
+): Promise<ActionResult<{ amount: number }>> {
+  try {
+    const userId = await getSessionUserId();
+    const amount = await getAvailableBalance(userId, asOfDate);
+    return { success: true, data: { amount } };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Não foi possível carregar o saldo da conta",
     };
   }
 }

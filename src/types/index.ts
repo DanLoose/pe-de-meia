@@ -126,6 +126,17 @@ export interface MonthTotalsData {
   totalExpense: number;
 }
 
+export interface HorizonDayMovement {
+  id: string;
+  source: "recurring" | "transaction" | "estimate";
+  ruleId?: string;
+  label: string;
+  amount: number;
+  type: TransactionType;
+  ledgerColumn: LedgerColumn;
+  cashDelta: number;
+}
+
 export interface HorizonDayCell {
   date: string;
   balance: number;
@@ -135,6 +146,7 @@ export interface HorizonDayCell {
   isProjected: boolean;
   hasRecurring: boolean;
   delta: number;
+  movements: HorizonDayMovement[];
 }
 
 export interface HorizonMonthColumn {
@@ -151,6 +163,10 @@ export interface HorizonSummary {
   lowestDate: string;
   firstNegativeDate: string | null;
   firstNegativeBalance: number | null;
+  /** Accumulated cash inflows in the visible horizon (from today). */
+  totalIncome: number;
+  /** Accumulated cash outflows in the visible horizon (from today). */
+  totalExpense: number;
 }
 
 export interface HorizonData {

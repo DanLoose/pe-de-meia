@@ -56,6 +56,7 @@ export async function upsertFixedExpenseAction(
     revalidatePath("/menu/previsao-diario");
     revalidatePath("/comecar");
     revalidatePath("/totais");
+    revalidatePath("/mapa-financeiro");
     return { success: true, data };
   } catch (error) {
     return {
@@ -76,6 +77,7 @@ export async function deleteFixedExpenseAction(
     revalidatePath("/menu/previsao-diario");
     revalidatePath("/comecar");
     revalidatePath("/totais");
+    revalidatePath("/mapa-financeiro");
     return { success: true };
   } catch (error) {
     return {

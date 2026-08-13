@@ -9,7 +9,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     redirect("/login");
   }
 
-  const pathname = (await headers()).get("x-pathname") ?? "/totais";
+  const pathname = (await headers()).get("x-pathname") ?? "/mapa-financeiro";
 
   return (
     <AppShell userEmail={session.user.email ?? ""} pathname={pathname}>

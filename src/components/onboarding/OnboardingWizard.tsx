@@ -41,6 +41,7 @@ import {
   SelectTrigger,
 } from "@/components/ui/select";
 import { copy } from "@/lib/copy";
+import { resolveDefaultCategoryId } from "@/lib/resolve-default-category";
 import { appToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import type { CategoryDTO, TransactionType } from "@/types";
@@ -137,20 +138,11 @@ export function OnboardingWizard({
   const [isPending, startTransition] = useTransition();
 
   const categoryIdForType = (type: TransactionType) => {
-    if (type === "INCOME") {
-      return (
-        categories.find(
-          (category) =>
-            category.type === "INCOME" && category.ledgerColumn === "INCOME",
-        )?.id ?? categories.find((category) => category.type === "INCOME")?.id
-      );
-    }
-    return (
-      categories.find(
-        (category) =>
-          category.type === "EXPENSE" && category.ledgerColumn === "EXPENSE",
-      )?.id ?? categories.find((category) => category.type === "EXPENSE")?.id
-    );
+    const id = resolveDefaultCategoryId(categories, {
+      type,
+      ledgerColumn: type === "INCOME" ? "INCOME" : "EXPENSE",
+    });
+    return id || undefined;
   };
 
   const syncFixedBills = async (): Promise<boolean> => {
@@ -283,7 +275,7 @@ export function OnboardingWizard({
           appToast.error(result.error ?? copy.toast.genericError);
           return;
         }
-        router.push("/totais");
+        router.push("/mapa-financeiro");
         router.refresh();
         return;
       }

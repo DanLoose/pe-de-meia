@@ -16,9 +16,11 @@ function revalidateApp() {
   revalidatePath("/comecar");
   revalidatePath("/totais");
   revalidatePath("/horizonte");
+  revalidatePath("/extrato");
   revalidatePath("/calendario");
   revalidatePath("/calendar");
   revalidatePath("/gastos-fixos");
+  revalidatePath("/mapa-financeiro");
   revalidatePath("/recorrentes");
   revalidatePath("/recurring");
 }

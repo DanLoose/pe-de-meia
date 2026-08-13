@@ -1,5 +1,5 @@
 import { format } from "date-fns";
-import { LedgerTable } from "@/components/ledger/LedgerTable";
+import { SaldosCashView } from "@/components/ledger/SaldosCashView";
 import { SaldosEmptyHint } from "@/components/ledger/SaldosEmptyHint";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { auth } from "@/lib/auth";
@@ -50,10 +50,10 @@ export default async function SaldosPage({ searchParams }: SaldosPageProps) {
   const showEmptyHint = !ledgerHasUserActivity(ledgerData);
 
   return (
-    <div className="flex h-[calc(100dvh-2*var(--page-padding-y))] max-md:h-[calc(100dvh-3.5rem-2*var(--page-padding-y))] flex-col gap-[var(--section-gap)] overflow-hidden">
+    <div className="flex flex-col gap-[var(--section-gap)] pb-8">
       <PageHeader title={copy.ledger.title} description={copy.ledger.subtitle} />
       {showEmptyHint ? <SaldosEmptyHint /> : null}
-      <LedgerTable
+      <SaldosCashView
         key={`${year}-${month}`}
         initialData={ledgerData}
         categories={categories}

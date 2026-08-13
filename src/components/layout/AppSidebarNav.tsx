@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BarChart3,
-  FolderOpen,
+  CalendarDays,
+  ListOrdered,
   Menu,
   Repeat,
   Table2,
@@ -22,19 +22,28 @@ type NavLink = {
 };
 
 const visionLinks: NavLink[] = [
-  { href: "/totais", label: copy.nav.totais, icon: BarChart3 },
-  { href: "/saldos", label: copy.nav.saldos, icon: Table2 },
+  {
+    href: "/mapa-financeiro",
+    label: copy.nav.mapaFinanceiro,
+    title: copy.nav.mapaFinanceiroHint,
+    icon: CalendarDays,
+  },
   {
     href: "/horizonte",
     label: copy.nav.horizonte,
     title: copy.nav.horizonteHint,
     icon: TrendingUp,
   },
+  {
+    href: "/extrato",
+    label: copy.nav.extrato,
+    title: copy.nav.extratoHint,
+    icon: ListOrdered,
+  },
 ];
 
 const configureLinks: NavLink[] = [
   { href: "/gastos-fixos", label: copy.nav.gastosFixos, icon: Repeat },
-  { href: "/tags", label: copy.nav.categories, icon: FolderOpen },
   { href: "/menu", label: copy.nav.menu, icon: Menu },
 ];
 

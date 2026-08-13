@@ -1,4 +1,5 @@
 import { Prisma } from "@/generated/prisma/client";
+import { format } from "date-fns";
 import { prisma } from "@/lib/db";
 import { defaultAffectsBalance } from "@/lib/cash";
 import {
@@ -14,6 +15,10 @@ import {
   updateRecurringSchema,
 } from "@/lib/validators/recurring";
 import type { RecurringTransactionDTO } from "@/types";
+
+function todayDateOnly() {
+  return format(new Date(), "yyyy-MM-dd");
+}
 
 function toNumber(value: Prisma.Decimal): number {
   return Number(value.toString());
@@ -137,7 +142,18 @@ export async function deleteRecurring(userId: string, id: string): Promise<void>
     throw new Error("Recorrência não encontrada");
   }
 
-  await prisma.recurringTransaction.delete({ where: { id: data.id } });
+  const today = todayDateOnly();
+
+  await prisma.$transaction([
+    prisma.transaction.deleteMany({
+      where: {
+        userId,
+        recurringId: data.id,
+        date: { gte: parseDateOnly(today) },
+      },
+    }),
+    prisma.recurringTransaction.delete({ where: { id: data.id } }),
+  ]);
 }
 
 export async function ensureRecurringTransactions(
@@ -154,8 +170,16 @@ export async function ensureRecurringTransactions(
     return;
   }
 
-  const start = parseDateOnly(startDate);
+  // Never backfill days before today. Otherwise deleting a past occurrence
+  // (e.g. "só este dia" in Projeção) is recreated on the next ledger/horizon load.
+  const today = parseDateOnly(todayDateOnly());
+  const requestedStart = parseDateOnly(startDate);
+  const start = requestedStart < today ? today : requestedStart;
   const end = parseDateOnly(endDate);
+
+  if (start > end) {
+    return;
+  }
 
   for (const rule of rules) {
     const ruleStart = rule.startsOn;
@@ -232,10 +256,24 @@ export async function toggleRecurringActive(
     throw new Error("Recorrência não encontrada");
   }
 
-  const recurring = await prisma.recurringTransaction.update({
-    where: { id },
-    data: { active },
-    include: { category: true },
+  const today = todayDateOnly();
+
+  const recurring = await prisma.$transaction(async (tx) => {
+    if (!active) {
+      await tx.transaction.deleteMany({
+        where: {
+          userId,
+          recurringId: id,
+          date: { gt: parseDateOnly(today) },
+        },
+      });
+    }
+
+    return tx.recurringTransaction.update({
+      where: { id },
+      data: { active },
+      include: { category: true },
+    });
   });
 
   return toRecurringDTO(recurring);

@@ -71,7 +71,7 @@ Open [http://localhost:3000](http://localhost:3000). After sign-in the app opens
 - **Gastos variáveis (estimativa)** — orçamento mensal do consumo variável (sem teto diário nesta fase)
 - **Custo de vida** ≈ fixos + estimativa de variáveis
 - Planilha **Saldos** (saldo running), **Totais**, **Horizonte**
-- Tags, cartão (fechamento/vencimento), onboarding
+- Cartão (fechamento/vencimento), Menu (saldo/perfil), onboarding
 - User-scoped data
 
 Product/domain definitions: [`docs/PRODUTO.md`](docs/PRODUTO.md), [`docs/DOMINIO.md`](docs/DOMINIO.md), [`docs/MAPEAMENTO-LEGADO.md`](docs/MAPEAMENTO-LEGADO.md).

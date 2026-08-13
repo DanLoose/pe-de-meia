@@ -6,6 +6,8 @@ import { getCategoriesByUser } from "@/lib/services/categories";
 import {
   createTransaction,
   deleteTransaction,
+  deleteTransactionSeries,
+  getTransactionSeriesInfo,
   getTransactionsByDate,
   getTransactionsByDateRange,
   getTransactionsByMonth,
@@ -14,6 +16,7 @@ import {
 import {
   createTransactionSchema,
   deleteTransactionSchema,
+  deleteTransactionSeriesSchema,
   updateTransactionSchema,
 } from "@/lib/validators/transaction";
 import type {
@@ -27,9 +30,11 @@ function revalidateFinancePaths() {
   revalidatePath("/saldos");
   revalidatePath("/totais");
   revalidatePath("/horizonte");
+  revalidatePath("/extrato");
   revalidatePath("/calendario");
   revalidatePath("/calendar");
   revalidatePath("/gastos-fixos");
+  revalidatePath("/mapa-financeiro");
   revalidatePath("/recorrentes");
   revalidatePath("/recurring");
 }
@@ -146,6 +151,49 @@ export async function deleteTransactionAction(
     return {
       success: false,
       error: error instanceof Error ? error.message : "Failed to delete transaction",
+    };
+  }
+}
+
+export async function fetchTransactionSeriesInfoAction(
+  id: string,
+): Promise<ActionResult<{ count: number; kind: "recurring" | "orphan" | "single" }>> {
+  try {
+    const userId = await getSessionUserId();
+    const data = await getTransactionSeriesInfo(userId, id);
+    return { success: true, data };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to inspect transaction series",
+    };
+  }
+}
+
+export async function deleteTransactionSeriesAction(
+  id: string,
+  scope: "one" | "series",
+): Promise<ActionResult<{ deletedIds: string[] }>> {
+  try {
+    const userId = await getSessionUserId();
+    const parsed = deleteTransactionSeriesSchema.parse({ id, scope });
+    const data = await deleteTransactionSeries(
+      userId,
+      parsed.id,
+      parsed.scope,
+    );
+    revalidateFinancePaths();
+    return { success: true, data };
+  } catch (error) {
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Failed to delete transaction series",
     };
   }
 }

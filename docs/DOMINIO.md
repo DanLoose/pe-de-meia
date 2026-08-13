@@ -25,6 +25,8 @@ folga         ≈ Σ receitas_fixas − custo_de_vida
 
 A estimativa **não** materializa lançamentos e **não** se divide por dias (sem teto/dia).
 
+**Dois tempos (fluxo de vida):** o **mês** responde “sobra pra viver?” (folga = plano). O **caixa** responde “tenho hoje / quando fica vermelho?” (Saldos e Projeção). Não misturar as duas verdades sem legenda. Ver [`PRODUTO.md`](./PRODUTO.md) §0 e wireframes em [`wireframes/`](./wireframes/).
+
 ### Fases de produto
 
 | Fase | Conteúdo |
@@ -110,7 +112,7 @@ Gasto **no crédito**. Consumo num dia; caixa só no **vencimento da fatura**.
 
 Eixo narrativo forte a partir da **V2** (método de pagamento). Na V1 não é o foco do onboarding.
 
-**Regra (V2+):** um lançamento = uma coluna. Meio de pagamento decide. Nunca Diário+Cartão ao mesmo tempo. A natureza do consumo (comida, lazer) vai na **tag**.
+**Regra (V2+):** um lançamento = uma coluna. Meio de pagamento decide. Nunca Diário+Cartão ao mesmo tempo. Classificação interna por categoria seed (sem gestão de tags pelo usuário).
 
 ### 3.5 Economias (`SAVINGS`)
 
@@ -190,9 +192,9 @@ Movimentações em Totais continuam mostrando totais do **ledger** do mês (entr
 
 Projeta caixa com recorrentes, lançamentos manuais de caixa e pagamentos de fatura no `dueDay`.
 
-### Tags
+### Categorias (interno)
 
-Refinam dentro da coluna / do tipo de movimento. Coluna = caixa; tag = rótulo (Alimentação, Moradia, …).
+Modelo `Category` permanece no banco (FK de lançamentos/fixos) com seed padrão. **Não há tela de Tags** — a atribuição é automática por tipo/`ledgerColumn`. Coluna = caixa; categoria = rótulo interno.
 
 ---
 

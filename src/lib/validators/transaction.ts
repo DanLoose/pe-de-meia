@@ -29,6 +29,11 @@ export const deleteTransactionSchema = z.object({
   id: z.string().min(1),
 });
 
+export const deleteTransactionSeriesSchema = z.object({
+  id: z.string().min(1),
+  scope: z.enum(["one", "series"]),
+});
+
 export const monthQuerySchema = z.object({
   year: z.coerce.number().int().min(2000).max(2100),
   month: z.coerce.number().int().min(1).max(12),

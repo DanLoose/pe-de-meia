@@ -1,14 +1,13 @@
 "use client";
 
-import { Pencil, Plus, Repeat, Trash2 } from "lucide-react";
-import { useMemo, useState, useTransition } from "react";
+import { Pencil, Plus, Power, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   createRecurringAction,
   deleteRecurringAction,
   toggleRecurringAction,
   updateRecurringAction,
 } from "@/app/actions/recurring";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,25 +16,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { EmptyState } from "@/components/ui/empty-state";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/ui/money-input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-} from "@/components/ui/select";
 import { copy } from "@/lib/copy";
 import { expenseClass, incomeClass } from "@/lib/design";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatSlashDate } from "@/lib/format";
+import { resolveDefaultCategoryId } from "@/lib/resolve-default-category";
 import { appToast } from "@/lib/toast";
+import { cn } from "@/lib/utils";
 import type { CategoryDTO, RecurringTransactionDTO, TransactionType } from "@/types";
 
 interface RecurringManagerProps {
   items: RecurringTransactionDTO[];
   categories: CategoryDTO[];
+  onItemsChange?: (items: RecurringTransactionDTO[]) => void;
 }
 
 type RecurringFormState = {
@@ -44,25 +39,32 @@ type RecurringFormState = {
   amount: number;
   description: string;
   dayOfMonth: string;
+  endsOn: string;
   categoryId: string;
 };
 
-function buildEmptyForm(categories: CategoryDTO[]): RecurringFormState {
-  const firstExpense = categories.find((category) => category.type === "EXPENSE");
+function buildEmptyForm(
+  categories: CategoryDTO[],
+  type: TransactionType = "EXPENSE",
+): RecurringFormState {
+  const ledgerColumn = type === "INCOME" ? "INCOME" : "EXPENSE";
   return {
-    type: "EXPENSE",
+    type,
     amount: 0,
     description: "",
     dayOfMonth: "1",
-    categoryId: firstExpense?.id ?? "",
+    endsOn: "",
+    categoryId: resolveDefaultCategoryId(categories, { type, ledgerColumn }),
   };
 }
 
 export function RecurringManager({
-  items: initialItems,
+  items: itemsProp,
   categories,
+  onItemsChange,
 }: RecurringManagerProps) {
-  const [items, setItems] = useState(initialItems);
+  const [localItems, setLocalItems] = useState(itemsProp);
+  const items = onItemsChange ? itemsProp : localItems;
   const [formOpen, setFormOpen] = useState(false);
   const [form, setForm] = useState<RecurringFormState>(() =>
     buildEmptyForm(categories),
@@ -70,19 +72,58 @@ export function RecurringManager({
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const filteredCategories = useMemo(
-    () => categories.filter((category) => category.type === form.type),
-    [categories, form.type],
+  useEffect(() => {
+    if (!onItemsChange) {
+      setLocalItems(itemsProp);
+    }
+  }, [itemsProp, onItemsChange]);
+
+  const setItems = (
+    updater:
+      | RecurringTransactionDTO[]
+      | ((current: RecurringTransactionDTO[]) => RecurringTransactionDTO[]),
+  ) => {
+    const next = typeof updater === "function" ? updater(items) : updater;
+    if (onItemsChange) {
+      onItemsChange(next);
+    } else {
+      setLocalItems(next);
+    }
+  };
+
+  const selectedCategoryId = useMemo(() => {
+    if (
+      form.categoryId &&
+      categories.some(
+        (category) =>
+          category.id === form.categoryId && category.type === form.type,
+      )
+    ) {
+      return form.categoryId;
+    }
+    return resolveDefaultCategoryId(categories, {
+      type: form.type,
+      ledgerColumn: form.type === "INCOME" ? "INCOME" : "EXPENSE",
+    });
+  }, [categories, form.categoryId, form.type]);
+
+  const incomes = useMemo(
+    () =>
+      items
+        .filter((item) => item.type === "INCOME")
+        .sort((a, b) => a.dayOfMonth - b.dayOfMonth),
+    [items],
+  );
+  const expenses = useMemo(
+    () =>
+      items
+        .filter((item) => item.type === "EXPENSE")
+        .sort((a, b) => a.dayOfMonth - b.dayOfMonth),
+    [items],
   );
 
-  const selectedCategoryId = filteredCategories.some(
-    (category) => category.id === form.categoryId,
-  )
-    ? form.categoryId
-    : (filteredCategories[0]?.id ?? "");
-
-  const openCreate = () => {
-    setForm(buildEmptyForm(categories));
+  const openCreate = (type: TransactionType = "EXPENSE") => {
+    setForm(buildEmptyForm(categories, type));
     setFormOpen(true);
   };
 
@@ -93,6 +134,7 @@ export function RecurringManager({
       amount: item.amount,
       description: item.description ?? "",
       dayOfMonth: String(item.dayOfMonth),
+      endsOn: item.endsOn ?? "",
       categoryId: item.categoryId,
     });
     setFormOpen(true);
@@ -106,6 +148,7 @@ export function RecurringManager({
         description: form.description,
         dayOfMonth: Number(form.dayOfMonth),
         categoryId: selectedCategoryId,
+        endsOn: form.endsOn.trim() ? form.endsOn : null,
         ...(form.id ? { id: form.id } : {}),
       };
 
@@ -167,113 +210,31 @@ export function RecurringManager({
     });
   };
 
-  if (items.length === 0) {
-    return (
-      <>
-        <EmptyState
-          icon={Repeat}
-          title={copy.fixedExpenses.empty}
-          description={copy.fixedExpenses.subtitle}
-          action={
-            <Button onClick={openCreate}>
-              <Plus className="size-4" />
-              {copy.fixedExpenses.new}
-            </Button>
-          }
-        />
-        <RecurringFormDialog
-          open={formOpen}
-          onOpenChange={setFormOpen}
-          form={form}
-          setForm={setForm}
-          filteredCategories={filteredCategories}
-          selectedCategoryId={selectedCategoryId}
-          onSave={saveRecurring}
-          isPending={isPending}
-        />
-      </>
-    );
-  }
-
   return (
     <>
-      <div className="mb-4 flex justify-end">
-        <Button onClick={openCreate}>
-          <Plus className="size-4" />
-          {copy.fixedExpenses.new}
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {items.map((item) => (
-          <div
-            key={item.id}
-            className="flex flex-col gap-3 rounded-xl border bg-card p-4"
-          >
-            <div className="flex items-start justify-between gap-2">
-              <div
-                className="flex size-12 shrink-0 flex-col items-center justify-center rounded-lg bg-muted text-sm font-semibold"
-                aria-hidden
-              >
-                <span className="text-[10px] uppercase text-muted-foreground">
-                  dia
-                </span>
-                <span>{item.dayOfMonth}</span>
-              </div>
-              <div className="min-w-0 flex-1 space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline" style={{ borderColor: item.categoryColor }}>
-                    {item.categoryName}
-                  </Badge>
-                  <Badge variant={item.active ? "default" : "secondary"}>
-                    {item.active ? copy.fixedExpenses.active : copy.fixedExpenses.inactive}
-                  </Badge>
-                </div>
-                <p
-                  className={
-                    item.type === "INCOME" ? incomeClass("font-semibold") : expenseClass("font-semibold")
-                  }
-                >
-                  {item.type === "INCOME" ? "+" : "-"}
-                  {formatCurrency(item.amount)}
-                </p>
-                {item.description && (
-                  <p className="truncate text-sm text-muted-foreground">
-                    {item.description}
-                  </p>
-                )}
-              </div>
-            </div>
-            <div className="flex gap-1 border-t pt-3">
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1"
-                onClick={() => toggleActive(item.id, !item.active)}
-              >
-                {item.active ? copy.fixedExpenses.inactive : copy.fixedExpenses.active}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-9"
-                aria-label={copy.fixedExpenses.edit}
-                onClick={() => openEdit(item)}
-              >
-                <Pencil className="size-4" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="size-9"
-                aria-label={copy.categories.delete}
-                onClick={() => setPendingDeleteId(item.id)}
-              >
-                <Trash2 className="size-4" />
-              </Button>
-            </div>
-          </div>
-        ))}
+      <div className="space-y-8">
+        <CommitmentGroup
+          title={copy.compromissosStudio.incomeGroup}
+          hint={copy.compromissosStudio.incomeHint}
+          empty={copy.compromissosStudio.emptyIncome}
+          items={incomes}
+          onAdd={() => openCreate("INCOME")}
+          onEdit={openEdit}
+          onToggle={toggleActive}
+          onDelete={setPendingDeleteId}
+          addLabel={copy.compromissosStudio.addIncome}
+        />
+        <CommitmentGroup
+          title={copy.compromissosStudio.expenseGroup}
+          hint={copy.compromissosStudio.expenseHint}
+          empty={copy.compromissosStudio.emptyExpense}
+          items={expenses}
+          onAdd={() => openCreate("EXPENSE")}
+          onEdit={openEdit}
+          onToggle={toggleActive}
+          onDelete={setPendingDeleteId}
+          addLabel={copy.compromissosStudio.addExpense}
+        />
       </div>
 
       <RecurringFormDialog
@@ -281,7 +242,7 @@ export function RecurringManager({
         onOpenChange={setFormOpen}
         form={form}
         setForm={setForm}
-        filteredCategories={filteredCategories}
+        categories={categories}
         selectedCategoryId={selectedCategoryId}
         onSave={saveRecurring}
         isPending={isPending}
@@ -302,8 +263,12 @@ export function RecurringManager({
             <Button variant="outline" onClick={() => setPendingDeleteId(null)}>
               {copy.entry.cancel}
             </Button>
-            <Button variant="destructive" onClick={confirmDelete} disabled={isPending}>
-              {copy.categories.delete}
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={isPending}
+            >
+              {copy.deleteConfirm.confirm}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -312,12 +277,184 @@ export function RecurringManager({
   );
 }
 
+function CommitmentGroup({
+  title,
+  hint,
+  empty,
+  items,
+  onAdd,
+  onEdit,
+  onToggle,
+  onDelete,
+  addLabel,
+}: {
+  title: string;
+  hint: string;
+  empty: string;
+  items: RecurringTransactionDTO[];
+  onAdd: () => void;
+  onEdit: (item: RecurringTransactionDTO) => void;
+  onToggle: (id: string, active: boolean) => void;
+  onDelete: (id: string) => void;
+  addLabel: string;
+}) {
+  return (
+    <div className="space-y-3">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h3 className="text-sm font-semibold tracking-tight">{title}</h3>
+          <p className="text-xs text-muted-foreground">{hint}</p>
+        </div>
+        <Button
+          size="sm"
+          onClick={onAdd}
+          className="rounded-full shadow-sm"
+        >
+          <Plus className="size-4" />
+          {addLabel}
+        </Button>
+      </div>
+
+      {items.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border/70 bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
+          {empty}
+        </div>
+      ) : (
+        <ul className="space-y-2">
+          {items.map((item) => (
+            <li key={item.id}>
+              <CommitmentRow
+                item={item}
+                onEdit={() => onEdit(item)}
+                onToggle={() => onToggle(item.id, !item.active)}
+                onDelete={() => onDelete(item.id)}
+              />
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function CommitmentRow({
+  item,
+  onEdit,
+  onToggle,
+  onDelete,
+}: {
+  item: RecurringTransactionDTO;
+  onEdit: () => void;
+  onToggle: () => void;
+  onDelete: () => void;
+}) {
+  const isIncome = item.type === "INCOME";
+  const label = item.description?.trim() || item.categoryName;
+
+  return (
+    <div
+      className={cn(
+        "group flex flex-wrap items-center gap-3 rounded-2xl border px-3 py-3 transition-all sm:flex-nowrap sm:px-4",
+        "hover:-translate-y-0.5 hover:shadow-md",
+        item.active
+          ? isIncome
+            ? "border-income/20 bg-gradient-to-r from-income/[0.08] to-background"
+            : "border-expense/20 bg-gradient-to-r from-expense/[0.08] to-background"
+          : "border-border/50 bg-muted/30 opacity-70",
+      )}
+    >
+      <div
+        className={cn(
+          "flex size-12 shrink-0 flex-col items-center justify-center rounded-2xl text-sm font-semibold",
+          isIncome ? "bg-income/15 text-income" : "bg-expense/15 text-expense",
+        )}
+      >
+        <span className="text-[9px] font-semibold uppercase tracking-wide opacity-70">
+          dia
+        </span>
+        <span className="tabular-nums leading-none">{item.dayOfMonth}</span>
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="truncate font-medium">{label}</p>
+          <span
+            className={cn(
+              "rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide",
+              isIncome
+                ? "bg-income/15 text-income"
+                : "bg-expense/15 text-expense",
+            )}
+          >
+            {isIncome
+              ? copy.commitmentsMap.badgeIncome
+              : copy.commitmentsMap.badgeExpense}
+          </span>
+          {!item.active ? (
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              {copy.fixedExpenses.inactive}
+            </span>
+          ) : null}
+        </div>
+        <p className="mt-0.5 truncate text-xs text-muted-foreground">
+          {copy.fixedExpenses.everyMonth} {item.dayOfMonth}
+          {item.endsOn
+            ? ` · ${copy.fixedExpenses.endsOnUntil(formatSlashDate(item.endsOn))}`
+            : null}
+        </p>
+      </div>
+
+      <p
+        className={cn(
+          "shrink-0 text-base font-semibold sm:text-lg",
+          isIncome ? incomeClass() : expenseClass(),
+        )}
+      >
+        {isIncome ? "+" : "−"}
+        {formatCurrency(item.amount)}
+      </p>
+
+      <div className="flex w-full items-center justify-end gap-1 sm:w-auto">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8 text-muted-foreground"
+          aria-label={
+            item.active ? copy.fixedExpenses.inactive : copy.fixedExpenses.active
+          }
+          onClick={onToggle}
+        >
+          <Power className="size-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8 text-muted-foreground"
+          aria-label={copy.fixedExpenses.edit}
+          onClick={onEdit}
+        >
+          <Pencil className="size-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="size-8 text-muted-foreground hover:text-expense"
+          aria-label={copy.deleteConfirm.confirm}
+          onClick={onDelete}
+        >
+          <Trash2 className="size-4" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
 function RecurringFormDialog({
   open,
   onOpenChange,
   form,
   setForm,
-  filteredCategories,
+  categories,
   selectedCategoryId,
   onSave,
   isPending,
@@ -326,11 +463,13 @@ function RecurringFormDialog({
   onOpenChange: (open: boolean) => void;
   form: RecurringFormState;
   setForm: React.Dispatch<React.SetStateAction<RecurringFormState>>;
-  filteredCategories: CategoryDTO[];
+  categories: CategoryDTO[];
   selectedCategoryId: string;
   onSave: () => void;
   isPending: boolean;
 }) {
+  const name = form.description.trim();
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -341,29 +480,50 @@ function RecurringFormDialog({
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-2">
-            <Label>{copy.entry.type}</Label>
-            <Select
-              value={form.type}
-              onValueChange={(value) =>
+            <Label htmlFor="recurring-name">{copy.fixedExpenses.name}</Label>
+            <Input
+              id="recurring-name"
+              value={form.description}
+              onChange={(event) =>
                 setForm((current) => ({
                   ...current,
-                  type: (value ?? "EXPENSE") as TransactionType,
-                  categoryId:
-                    filteredCategories.find((category) => category.type === value)
-                      ?.id ?? "",
+                  description: event.target.value,
                 }))
               }
-            >
-              <SelectTrigger className="w-full">
-                <span>
-                  {form.type === "INCOME" ? copy.entry.income : copy.entry.expense}
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="INCOME">{copy.entry.income}</SelectItem>
-                <SelectItem value="EXPENSE">{copy.entry.expense}</SelectItem>
-              </SelectContent>
-            </Select>
+              placeholder={copy.fixedExpenses.namePlaceholder}
+              autoFocus
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>{copy.entry.type}</Label>
+            <div className="grid grid-cols-2 gap-2">
+              {(["INCOME", "EXPENSE"] as const).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() =>
+                    setForm((current) => ({
+                      ...current,
+                      type,
+                      categoryId: resolveDefaultCategoryId(categories, {
+                        type,
+                        ledgerColumn: type === "INCOME" ? "INCOME" : "EXPENSE",
+                      }),
+                    }))
+                  }
+                  className={cn(
+                    "rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",
+                    form.type === type
+                      ? type === "INCOME"
+                        ? "border-income/40 bg-income/10 text-income"
+                        : "border-expense/40 bg-expense/10 text-expense"
+                      : "border-border/70 text-muted-foreground hover:bg-muted/40",
+                  )}
+                >
+                  {type === "INCOME" ? copy.entry.income : copy.entry.expense}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="recurring-amount">{copy.entry.amount}</Label>
@@ -390,44 +550,26 @@ function RecurringFormDialog({
                 }))
               }
             />
+            <p className="text-xs text-muted-foreground">
+              {copy.fixedExpenses.dayOfMonthHint}
+            </p>
           </div>
           <div className="space-y-2">
-            <Label>{copy.entry.category}</Label>
-            <Select
-              value={selectedCategoryId}
-              onValueChange={(value) =>
-                setForm((current) => ({ ...current, categoryId: value ?? "" }))
-              }
-            >
-              <SelectTrigger className="w-full">
-                <span>
-                  {filteredCategories.find(
-                    (category) => category.id === selectedCategoryId,
-                  )?.name ?? copy.entry.categoryPlaceholder}
-                </span>
-              </SelectTrigger>
-              <SelectContent>
-                {filteredCategories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    {category.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="recurring-description">{copy.entry.note}</Label>
+            <Label htmlFor="recurring-ends-on">{copy.fixedExpenses.endsOn}</Label>
             <Input
-              id="recurring-description"
-              value={form.description}
+              id="recurring-ends-on"
+              type="date"
+              value={form.endsOn}
               onChange={(event) =>
                 setForm((current) => ({
                   ...current,
-                  description: event.target.value,
+                  endsOn: event.target.value,
                 }))
               }
-              placeholder={copy.entry.notePlaceholder}
             />
+            <p className="text-xs text-muted-foreground">
+              {copy.fixedExpenses.endsOnHint}
+            </p>
           </div>
         </div>
         <DialogFooter>
@@ -436,7 +578,12 @@ function RecurringFormDialog({
           </Button>
           <Button
             onClick={onSave}
-            disabled={isPending || !selectedCategoryId || form.amount <= 0}
+            disabled={
+              isPending ||
+              !selectedCategoryId ||
+              form.amount <= 0 ||
+              !name
+            }
           >
             {form.id ? copy.entry.update : copy.entry.create}
           </Button>

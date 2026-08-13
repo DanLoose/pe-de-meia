@@ -4,7 +4,7 @@ import { copy } from "../src/lib/copy";
 
 test.describe("Authentication", () => {
   test("redirects unauthenticated users to login", async ({ page }) => {
-    await page.goto("/totais");
+    await page.goto("/mapa-financeiro");
     await expect(page).toHaveURL(/\/login/);
   });
 
@@ -12,7 +12,7 @@ test.describe("Authentication", () => {
     await loginAsDemo(page);
 
     await expect(
-      page.getByRole("heading", { name: copy.totals.title }),
+      page.getByRole("heading", { name: copy.mapaFinanceiro.title }),
     ).toBeVisible();
     await expect(page.getByText(DEMO_EMAIL)).toBeVisible();
   });
