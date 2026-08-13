@@ -10,7 +10,7 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio",
-    "test": "tsx --test src/lib/cash.test.ts src/lib/card-cycle.test.ts src/lib/balance-insights.test.ts src/lib/commitment-map.test.ts src/lib/day-items.test.ts src/lib/horizon-cash.test.ts src/lib/horizon-recurring.test.ts src/lib/horizon-variable.test.ts",
+    "test": "tsx --test src/lib/cash.test.ts src/lib/card-cycle.test.ts src/lib/balance-insights.test.ts src/lib/commitment-map.test.ts src/lib/day-items.test.ts src/lib/horizon-cash.test.ts src/lib/horizon-recurring.test.ts src/lib/horizon-variable.test.ts src/lib/resolve-default-category.test.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report",

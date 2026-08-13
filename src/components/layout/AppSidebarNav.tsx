@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   CalendarDays,
-  FolderOpen,
   ListOrdered,
   Menu,
   Repeat,
@@ -45,7 +44,6 @@ const visionLinks: NavLink[] = [
 
 const configureLinks: NavLink[] = [
   { href: "/gastos-fixos", label: copy.nav.gastosFixos, icon: Repeat },
-  { href: "/tags", label: copy.nav.categories, icon: FolderOpen },
   { href: "/menu", label: copy.nav.menu, icon: Menu },
 ];
 
