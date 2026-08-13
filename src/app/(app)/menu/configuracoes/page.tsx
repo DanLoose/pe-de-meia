@@ -2,7 +2,10 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { SettingsForm } from "@/components/menu/SettingsForm";
 import { auth } from "@/lib/auth";
 import { copy } from "@/lib/copy";
-import { getUserSettings } from "@/lib/services/user-settings";
+import {
+  getAvailableBalance,
+  getUserSettings,
+} from "@/lib/services/user-settings";
 import { redirect } from "next/navigation";
 
 export default async function ConfiguracoesPage() {
@@ -11,7 +14,10 @@ export default async function ConfiguracoesPage() {
     redirect("/login");
   }
 
-  const settings = await getUserSettings(session.user.id);
+  const [settings, availableBalance] = await Promise.all([
+    getUserSettings(session.user.id),
+    getAvailableBalance(session.user.id),
+  ]);
 
   return (
     <div className="space-y-[var(--section-gap)]">
@@ -21,7 +27,10 @@ export default async function ConfiguracoesPage() {
         backHref="/menu"
         backLabel={copy.menu.back}
       />
-      <SettingsForm settings={settings} />
+      <SettingsForm
+        settings={settings}
+        availableBalance={availableBalance}
+      />
     </div>
   );
 }

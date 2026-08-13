@@ -55,5 +55,5 @@ export async function skipOnboardingAction(): Promise<void> {
   const userId = await getSessionUserId();
   await completeOnboarding(userId);
   revalidateOnboarding();
-  redirect("/totais");
+  redirect("/mapa-financeiro");
 }

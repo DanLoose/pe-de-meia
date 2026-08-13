@@ -72,12 +72,23 @@ export function SaldosCashView({
           />
         </div>
 
-        <Link
-          href="/totais"
-          className="inline-block text-sm font-medium text-primary hover:underline"
-        >
-          {copy.ledger.seePlan}
-        </Link>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <Link
+            href="/mapa-financeiro"
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            {copy.nav.mapaFinanceiro}
+          </Link>
+          <span className="text-muted-foreground/40" aria-hidden>
+            ·
+          </span>
+          <Link
+            href={`/extrato?year=${data.year}&month=${data.month}`}
+            className="text-sm font-medium text-primary hover:underline"
+          >
+            {copy.ledger.seeExtrato}
+          </Link>
+        </div>
       </div>
 
       <div className="min-h-[320px]">

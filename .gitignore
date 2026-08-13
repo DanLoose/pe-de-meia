@@ -17,6 +17,9 @@
 /blob-report/
 /playwright/.cache/
 
+# local UX walkthrough dumps
+/scripts/ux-evidence/
+
 # next.js
 /.next/
 /out/

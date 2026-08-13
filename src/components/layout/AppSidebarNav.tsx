@@ -3,9 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BarChart3,
   CalendarDays,
   FolderOpen,
+  ListOrdered,
   Menu,
   Repeat,
   Table2,
@@ -29,13 +29,17 @@ const visionLinks: NavLink[] = [
     title: copy.nav.mapaFinanceiroHint,
     icon: CalendarDays,
   },
-  { href: "/totais", label: copy.nav.totais, icon: BarChart3 },
-  { href: "/saldos", label: copy.nav.saldos, icon: Table2 },
   {
     href: "/horizonte",
     label: copy.nav.horizonte,
     title: copy.nav.horizonteHint,
     icon: TrendingUp,
+  },
+  {
+    href: "/extrato",
+    label: copy.nav.extrato,
+    title: copy.nav.extratoHint,
+    icon: ListOrdered,
   },
 ];
 

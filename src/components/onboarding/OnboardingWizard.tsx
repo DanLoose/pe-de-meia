@@ -283,7 +283,7 @@ export function OnboardingWizard({
           appToast.error(result.error ?? copy.toast.genericError);
           return;
         }
-        router.push("/totais");
+        router.push("/mapa-financeiro");
         router.refresh();
         return;
       }

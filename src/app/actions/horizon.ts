@@ -6,17 +6,22 @@ import type { ActionResult, HorizonData } from "@/types";
 
 export async function fetchHorizonAction(
   startDate: string,
-  months = 3,
+  months = 12,
+  includeVariableEstimate = true,
 ): Promise<ActionResult<HorizonData>> {
   try {
     const userId = await getSessionUserId();
-    const data = await getHorizon(userId, startDate, months);
+    const data = await getHorizon(userId, startDate, months, {
+      includeVariableEstimate,
+    });
     return { success: true, data };
   } catch (error) {
     return {
       success: false,
       error:
-        error instanceof Error ? error.message : "Não foi possível carregar o horizonte",
+        error instanceof Error
+          ? error.message
+          : "Não foi possível carregar o horizonte",
     };
   }
 }

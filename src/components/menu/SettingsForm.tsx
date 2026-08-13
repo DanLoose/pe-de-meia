@@ -1,30 +1,46 @@
 "use client";
 
-import { useTransition } from "react";
-import { updateUserSettingsAction } from "@/app/actions/user-settings";
+import { useState, useTransition } from "react";
+import {
+  setAvailableBalanceAction,
+  updateUserSettingsAction,
+} from "@/app/actions/user-settings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MoneyInput } from "@/components/ui/money-input";
 import { copy } from "@/lib/copy";
 import { appToast } from "@/lib/toast";
 import type { UserSettingsDTO } from "@/types";
 
 interface SettingsFormProps {
   settings: UserSettingsDTO;
+  availableBalance: number;
 }
 
-export function SettingsForm({ settings }: SettingsFormProps) {
+export function SettingsForm({
+  settings,
+  availableBalance,
+}: SettingsFormProps) {
+  const [balance, setBalance] = useState(availableBalance);
   const [isPending, startTransition] = useTransition();
 
   const handleSubmit = (formData: FormData) => {
     startTransition(async () => {
-      const result = await updateUserSettingsAction({
-        openingBalance: Number(formData.get("openingBalance")),
-        cardClosingDay: Number(formData.get("cardClosingDay")),
-        cardDueDay: Number(formData.get("cardDueDay")),
-      });
-      if (!result.success) {
-        appToast.error(result.error ?? copy.toast.genericError);
+      const [balanceResult, cardResult] = await Promise.all([
+        setAvailableBalanceAction({ amount: balance }),
+        updateUserSettingsAction({
+          cardClosingDay: Number(formData.get("cardClosingDay")),
+          cardDueDay: Number(formData.get("cardDueDay")),
+        }),
+      ]);
+
+      if (!balanceResult.success) {
+        appToast.error(balanceResult.error ?? copy.toast.genericError);
+        return;
+      }
+      if (!cardResult.success) {
+        appToast.error(cardResult.error ?? copy.toast.genericError);
         return;
       }
       appToast.success(copy.settings.saved);
@@ -34,13 +50,11 @@ export function SettingsForm({ settings }: SettingsFormProps) {
   return (
     <form action={handleSubmit} className="max-w-md space-y-4">
       <div className="space-y-2">
-        <Label htmlFor="openingBalance">{copy.settings.openingBalance}</Label>
-        <Input
-          id="openingBalance"
-          name="openingBalance"
-          type="number"
-          step="0.01"
-          defaultValue={String(settings.openingBalance)}
+        <Label htmlFor="availableBalance">{copy.settings.openingBalance}</Label>
+        <MoneyInput
+          id="availableBalance"
+          value={balance}
+          onValueChange={setBalance}
         />
         <p className="text-xs text-muted-foreground">
           {copy.settings.openingBalanceHint}

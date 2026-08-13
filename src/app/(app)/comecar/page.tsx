@@ -18,7 +18,7 @@ export default async function ComecarPage() {
   ]);
 
   if (status.wizardCompleted) {
-    redirect("/totais");
+    redirect("/mapa-financeiro");
   }
 
   return (

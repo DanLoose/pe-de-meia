@@ -1,8 +1,13 @@
+import { format } from "date-fns";
 import { prisma } from "@/lib/db";
 import {
   ensureCardAccount,
   updateCardAccount,
 } from "@/lib/services/card";
+import {
+  getLedgerMonth,
+  getUserOpeningBalance,
+} from "@/lib/services/ledger";
 import type { UserSettingsDTO } from "@/types";
 
 export async function getUserSettings(userId: string): Promise<UserSettingsDTO> {
@@ -33,6 +38,33 @@ export async function getUserSettings(userId: string): Promise<UserSettingsDTO> 
       ? user.subscriptionEndsAt.toISOString()
       : null,
   };
+}
+
+/** Checking-account balance as of a date (matches Projeção / ledger for that day). */
+export async function getAvailableBalance(
+  userId: string,
+  asOfDate = format(new Date(), "yyyy-MM-dd"),
+): Promise<number> {
+  const [year, month] = asOfDate.split("-").map(Number);
+  const opening = await getUserOpeningBalance(userId);
+  const ledger = await getLedgerMonth(userId, year, month, opening);
+  const row = ledger.rows.find((day) => day.date === asOfDate);
+  return row?.balance ?? opening;
+}
+
+/**
+ * Sets the cash available in the account as of `asOfDate` by adjusting
+ * openingBalance so the computed ledger balance matches `amount`.
+ */
+export async function setAvailableBalance(
+  userId: string,
+  amount: number,
+  asOfDate = format(new Date(), "yyyy-MM-dd"),
+): Promise<UserSettingsDTO> {
+  const opening = await getUserOpeningBalance(userId);
+  const current = await getAvailableBalance(userId, asOfDate);
+  const nextOpening = opening + (amount - current);
+  return updateUserSettings(userId, { openingBalance: nextOpening });
 }
 
 export async function updateUserSettings(

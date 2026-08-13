@@ -401,3 +401,107 @@ export async function deleteTransaction(
 
   await prisma.transaction.delete({ where: { id: data.id } });
 }
+
+function normalizeDescription(value: string | null) {
+  return (value ?? "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+async function findSeriesSiblingIds(
+  userId: string,
+  existing: {
+    id: string;
+    type: TransactionType;
+    amount: Prisma.Decimal;
+    description: string | null;
+    date: Date;
+    recurringId: string | null;
+  },
+): Promise<string[]> {
+  if (existing.recurringId) {
+    const siblings = await prisma.transaction.findMany({
+      where: { userId, recurringId: existing.recurringId },
+      select: { id: true },
+    });
+    return siblings.map((row) => row.id);
+  }
+
+  const day = existing.date.getUTCDate();
+  const label = normalizeDescription(existing.description);
+
+  const candidates = await prisma.transaction.findMany({
+    where: {
+      userId,
+      recurringId: null,
+      type: existing.type,
+      amount: existing.amount,
+    },
+    select: { id: true, description: true, date: true },
+  });
+
+  return candidates
+    .filter(
+      (row) =>
+        row.date.getUTCDate() === day &&
+        normalizeDescription(row.description) === label,
+    )
+    .map((row) => row.id);
+}
+
+export async function getTransactionSeriesInfo(
+  userId: string,
+  id: string,
+): Promise<{ count: number; kind: "recurring" | "orphan" | "single" }> {
+  const existing = await prisma.transaction.findFirst({
+    where: { id, userId },
+  });
+  if (!existing) {
+    throw new Error("Transaction not found");
+  }
+
+  const ids = await findSeriesSiblingIds(userId, existing);
+  if (ids.length <= 1) {
+    return { count: 1, kind: "single" };
+  }
+
+  return {
+    count: ids.length,
+    kind: existing.recurringId ? "recurring" : "orphan",
+  };
+}
+
+export async function deleteTransactionSeries(
+  userId: string,
+  id: string,
+  scope: "one" | "series",
+): Promise<{ deletedIds: string[] }> {
+  const existing = await prisma.transaction.findFirst({
+    where: { id, userId },
+  });
+  if (!existing) {
+    throw new Error("Transaction not found");
+  }
+
+  if (scope === "one") {
+    await prisma.transaction.delete({ where: { id } });
+    return { deletedIds: [id] };
+  }
+
+  const ids = await findSeriesSiblingIds(userId, existing);
+  if (ids.length === 0) {
+    return { deletedIds: [] };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.transaction.deleteMany({
+      where: { userId, id: { in: ids } },
+    });
+
+    if (existing.recurringId) {
+      await tx.recurringTransaction.deleteMany({
+        where: { id: existing.recurringId, userId },
+      });
+    }
+  });
+
+  return { deletedIds: ids };
+}

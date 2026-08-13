@@ -128,7 +128,7 @@ export function CommitmentsMap({
               ·
             </span>
             <Link
-              href={`/totais?year=${year}&month=${month}`}
+              href="/horizonte"
               className="text-sm font-medium text-primary hover:underline"
             >
               {copy.commitmentsMap.seeFolga}

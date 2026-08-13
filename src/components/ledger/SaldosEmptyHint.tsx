@@ -32,13 +32,13 @@ export function SaldosEmptyHint() {
             {copy.ledger.emptyActionRecurring}
           </Link>
           <Link
-            href="/totais"
+            href="/mapa-financeiro"
             className={cn(
               buttonVariants({ variant: "link", size: "sm" }),
               "h-auto px-0 text-muted-foreground",
             )}
           >
-            Ver Totais do mês
+            {copy.nav.mapaFinanceiro}
           </Link>
         </div>
       </CardContent>
