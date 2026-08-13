@@ -1,5 +1,15 @@
 import { formatDateOnly, getMonthDateRange, parseDateOnly } from "@/lib/dates";
-import type { RecurringTransactionDTO, TransactionType } from "@/types";
+import { defaultAffectsBalance } from "@/lib/cash";
+import type { LedgerColumn, RecurringTransactionDTO, TransactionType } from "@/types";
+
+/** Como o movimento afeta o caixa: à vista vs crédito. */
+export type CommitmentMapPayMode = "cash" | "card";
+
+export function payModeFromLedgerColumn(
+  column: LedgerColumn | null | undefined,
+): CommitmentMapPayMode {
+  return column === "CARD" ? "card" : "cash";
+}
 
 export interface CommitmentMapEvent {
   id: string;
@@ -11,6 +21,9 @@ export interface CommitmentMapEvent {
   label: string;
   categoryColor: string;
   active: boolean;
+  payMode: CommitmentMapPayMode;
+  /** Se true, entra no total do dia (caixa). Compras no crédito ficam false. */
+  affectsCash: boolean;
 }
 
 export interface CommitmentMapDay {
@@ -82,6 +95,7 @@ function occurrenceInMonth(
     rule.categoryName ||
     (rule.type === "INCOME" ? "Receita" : "Gasto");
 
+  const ledgerColumn = rule.ledgerColumn;
   return {
     id: `${rule.id}-${formatDateOnly(date)}`,
     ruleId: rule.id,
@@ -92,6 +106,8 @@ function occurrenceInMonth(
     label,
     categoryColor: rule.categoryColor,
     active: rule.active,
+    payMode: payModeFromLedgerColumn(ledgerColumn),
+    affectsCash: defaultAffectsBalance(ledgerColumn),
   };
 }
 

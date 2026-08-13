@@ -1,6 +1,6 @@
 "use client";
 
-import { Pencil, Plus, Power, Trash2 } from "lucide-react";
+import { CreditCard, Pencil, Plus, Power, Trash2, Wallet } from "lucide-react";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
   createRecurringAction,
@@ -25,13 +25,20 @@ import { formatCurrency, formatSlashDate } from "@/lib/format";
 import { resolveDefaultCategoryId } from "@/lib/resolve-default-category";
 import { appToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
-import type { CategoryDTO, RecurringTransactionDTO, TransactionType } from "@/types";
+import type {
+  CategoryDTO,
+  LedgerColumn,
+  RecurringTransactionDTO,
+  TransactionType,
+} from "@/types";
 
 interface RecurringManagerProps {
   items: RecurringTransactionDTO[];
   categories: CategoryDTO[];
   onItemsChange?: (items: RecurringTransactionDTO[]) => void;
 }
+
+type ExpensePayMode = "cash" | "card";
 
 type RecurringFormState = {
   id?: string;
@@ -41,7 +48,21 @@ type RecurringFormState = {
   dayOfMonth: string;
   endsOn: string;
   categoryId: string;
+  /** Só relevante para gastos: à vista vs cartão. */
+  payMode: ExpensePayMode;
 };
+
+function payModeFromLedger(column: LedgerColumn): ExpensePayMode {
+  return column === "CARD" ? "card" : "cash";
+}
+
+function ledgerFromForm(
+  type: TransactionType,
+  payMode: ExpensePayMode,
+): LedgerColumn {
+  if (type === "INCOME") return "INCOME";
+  return payMode === "card" ? "CARD" : "EXPENSE";
+}
 
 function buildEmptyForm(
   categories: CategoryDTO[],
@@ -55,6 +76,7 @@ function buildEmptyForm(
     dayOfMonth: "1",
     endsOn: "",
     categoryId: resolveDefaultCategoryId(categories, { type, ledgerColumn }),
+    payMode: "cash",
   };
 }
 
@@ -92,6 +114,7 @@ export function RecurringManager({
   };
 
   const selectedCategoryId = useMemo(() => {
+    const ledgerColumn = ledgerFromForm(form.type, form.payMode);
     if (
       form.categoryId &&
       categories.some(
@@ -103,9 +126,9 @@ export function RecurringManager({
     }
     return resolveDefaultCategoryId(categories, {
       type: form.type,
-      ledgerColumn: form.type === "INCOME" ? "INCOME" : "EXPENSE",
+      ledgerColumn,
     });
-  }, [categories, form.categoryId, form.type]);
+  }, [categories, form.categoryId, form.type, form.payMode]);
 
   const incomes = useMemo(
     () =>
@@ -136,6 +159,7 @@ export function RecurringManager({
       dayOfMonth: String(item.dayOfMonth),
       endsOn: item.endsOn ?? "",
       categoryId: item.categoryId,
+      payMode: payModeFromLedger(item.ledgerColumn),
     });
     setFormOpen(true);
   };
@@ -149,6 +173,7 @@ export function RecurringManager({
         dayOfMonth: Number(form.dayOfMonth),
         categoryId: selectedCategoryId,
         endsOn: form.endsOn.trim() ? form.endsOn : null,
+        ledgerColumn: ledgerFromForm(form.type, form.payMode),
         ...(form.id ? { id: form.id } : {}),
       };
 
@@ -349,7 +374,9 @@ function CommitmentRow({
   onDelete: () => void;
 }) {
   const isIncome = item.type === "INCOME";
+  const isCard = item.ledgerColumn === "CARD";
   const label = item.description?.trim() || item.categoryName;
+  const PayIcon = isCard ? CreditCard : Wallet;
 
   return (
     <div
@@ -390,6 +417,21 @@ function CommitmentRow({
               ? copy.commitmentsMap.badgeIncome
               : copy.commitmentsMap.badgeExpense}
           </span>
+          {!isIncome ? (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold tracking-wide",
+                isCard
+                  ? "bg-violet-500/15 text-violet-700 dark:text-violet-300"
+                  : "bg-muted text-muted-foreground",
+              )}
+            >
+              <PayIcon className="size-3" aria-hidden />
+              {isCard
+                ? copy.fixedExpenses.payCardBadge
+                : copy.fixedExpenses.payCashBadge}
+            </span>
+          ) : null}
           {!item.active ? (
             <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
               {copy.fixedExpenses.inactive}
@@ -505,9 +547,13 @@ function RecurringFormDialog({
                     setForm((current) => ({
                       ...current,
                       type,
+                      payMode: type === "INCOME" ? "cash" : current.payMode,
                       categoryId: resolveDefaultCategoryId(categories, {
                         type,
-                        ledgerColumn: type === "INCOME" ? "INCOME" : "EXPENSE",
+                        ledgerColumn: ledgerFromForm(
+                          type,
+                          type === "INCOME" ? "cash" : current.payMode,
+                        ),
                       }),
                     }))
                   }
@@ -554,6 +600,31 @@ function RecurringFormDialog({
               {copy.fixedExpenses.dayOfMonthHint}
             </p>
           </div>
+          {form.type === "EXPENSE" ? (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">{copy.fixedExpenses.howPaid}</p>
+              <div className="grid gap-2">
+                <PayOption
+                  active={form.payMode === "cash"}
+                  title={copy.fixedExpenses.payCash}
+                  hint={copy.fixedExpenses.payCashHint}
+                  icon={<Wallet className="size-4" aria-hidden />}
+                  onClick={() =>
+                    setForm((current) => ({ ...current, payMode: "cash" }))
+                  }
+                />
+                <PayOption
+                  active={form.payMode === "card"}
+                  title={copy.fixedExpenses.payCard}
+                  hint={copy.fixedExpenses.payCardHint}
+                  icon={<CreditCard className="size-4" aria-hidden />}
+                  onClick={() =>
+                    setForm((current) => ({ ...current, payMode: "card" }))
+                  }
+                />
+              </div>
+            </div>
+          ) : null}
           <div className="space-y-2">
             <Label htmlFor="recurring-ends-on">{copy.fixedExpenses.endsOn}</Label>
             <Input
@@ -590,5 +661,45 @@ function RecurringFormDialog({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function PayOption({
+  active,
+  title,
+  hint,
+  icon,
+  onClick,
+}: {
+  active: boolean;
+  title: string;
+  hint: string;
+  icon: React.ReactNode;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex gap-3 rounded-xl border px-3.5 py-3 text-left transition-all",
+        active
+          ? "border-primary bg-primary/8 shadow-sm ring-1 ring-primary/20"
+          : "border-border/70 hover:border-border hover:bg-muted/40",
+      )}
+    >
+      <span
+        className={cn(
+          "mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-lg",
+          active ? "bg-primary/15 text-primary" : "bg-muted text-muted-foreground",
+        )}
+      >
+        {icon}
+      </span>
+      <span className="min-w-0">
+        <span className="block text-sm font-semibold">{title}</span>
+        <span className="mt-0.5 block text-xs text-muted-foreground">{hint}</span>
+      </span>
+    </button>
   );
 }

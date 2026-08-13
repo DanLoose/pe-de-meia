@@ -15,6 +15,9 @@ function rule(
     categoryId: partial.categoryId ?? "c1",
     categoryName: partial.categoryName ?? "Cat",
     categoryColor: partial.categoryColor ?? "#888",
+    ledgerColumn:
+      partial.ledgerColumn ??
+      (partial.type === "INCOME" ? "INCOME" : "EXPENSE"),
     ...partial,
   };
 }

@@ -66,6 +66,8 @@ export interface RecurringTransactionDTO {
   categoryId: string;
   categoryName: string;
   categoryColor: string;
+  /** Forma de pagamento do compromisso (à vista vs cartão). */
+  ledgerColumn: LedgerColumn;
 }
 
 export interface ActionResult<T = void> {
@@ -175,6 +177,59 @@ export interface HorizonData {
   months: HorizonMonthColumn[];
   lowThreshold: number;
   summary: HorizonSummary;
+}
+
+/** Per-day flags for the mapa calendário (Phase 1 snapshot). */
+export interface MapaDayFlags {
+  closing: boolean;
+  due: boolean;
+  payday: boolean;
+  red: boolean;
+}
+
+export interface MapaDaySnapshot {
+  date: string;
+  balance: number;
+  cashNet: number;
+  openInvoice: number;
+  flags: MapaDayFlags;
+}
+
+export interface MapaNextCrunch {
+  date: string;
+  balance: number;
+  causeLabel: string;
+  causeAmount: number;
+}
+
+export interface MapaInvoiceStory {
+  closingDay: number;
+  dueDay: number;
+  openAmount: number;
+  dueAmount: number;
+}
+
+export interface MapaMonthCards {
+  todayBalance: number;
+  nextCrunch: MapaNextCrunch | null;
+  invoiceStory: MapaInvoiceStory;
+}
+
+/** One-month snapshot for Mapa financeiro — no 12-month horizon fetch. */
+export interface MapaMonthSnapshot {
+  year: number;
+  month: number;
+  today: string;
+  lowThreshold: number;
+  days: MapaDaySnapshot[];
+  cards: MapaMonthCards;
+}
+
+/** Year overlay heat cell (one per month). */
+export interface MapaYearMonthHeat {
+  month: number;
+  band: "ok" | "low" | "bad";
+  hasRed: boolean;
 }
 
 export interface FixedExpenseDTO {
