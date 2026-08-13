@@ -6,7 +6,6 @@ import {
   CalendarSync,
   Layers,
   Pencil,
-  Tag,
   Wallet,
 } from "lucide-react";
 import type { TransactionType } from "@/generated/prisma/client";
@@ -37,6 +36,7 @@ import {
   ledgerColumnHint,
   ledgerColumnVariant,
 } from "@/lib/ledger-columns";
+import { resolveDefaultCategoryId } from "@/lib/resolve-default-category";
 import { appToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import type {
@@ -85,18 +85,6 @@ function FormRow({
   );
 }
 
-function CategoryOption({ category }: { category: CategoryDTO }) {
-  return (
-    <span className="flex items-center gap-2">
-      <span
-        className="size-2 shrink-0 rounded-full"
-        style={{ backgroundColor: category.color }}
-      />
-      {category.name}
-    </span>
-  );
-}
-
 function dayFromDate(date: string): number | null {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
   if (!match) return null;
@@ -127,26 +115,26 @@ function EntryFormFields({
     transaction?.description ?? "",
   );
   const [entryDate, setEntryDate] = useState(transaction?.date ?? date ?? "");
-  const [categoryId, setCategoryId] = useState(transaction?.categoryId ?? "");
   const [recurring, setRecurring] = useState(Boolean(transaction?.recurringId));
   const [installmentCount, setInstallmentCount] = useState(1);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const filteredCategories = useMemo(
-    () => categories.filter((category) => category.type === type),
-    [categories, type],
-  );
-
-  const selectedCategoryId = filteredCategories.some(
-    (category) => category.id === categoryId,
-  )
-    ? categoryId
-    : (filteredCategories[0]?.id ?? "");
-
-  const selectedCategory = filteredCategories.find(
-    (category) => category.id === selectedCategoryId,
-  );
+  const selectedCategoryId = useMemo(() => {
+    if (
+      transaction?.categoryId &&
+      categories.some((c) => c.id === transaction.categoryId)
+    ) {
+      // Keep existing tag when editing unless type/column force a better match later.
+      if (transaction.type === type && transaction.ledgerColumn === selectedColumn) {
+        return transaction.categoryId;
+      }
+    }
+    return resolveDefaultCategoryId(categories, {
+      type,
+      ledgerColumn: selectedColumn,
+    });
+  }, [categories, selectedColumn, type, transaction]);
 
   const recurringDay = dayFromDate(entryDate);
   const columnLabel = LEDGER_COLUMN_LABELS[selectedColumn].toLowerCase();
@@ -160,10 +148,6 @@ function EntryFormFields({
       setInstallmentCount(1);
     }
     setType(nextType);
-    const nextCategories = categories.filter(
-      (category) => category.type === nextType,
-    );
-    setCategoryId(nextCategories[0]?.id ?? "");
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -369,34 +353,6 @@ function EntryFormFields({
               {copy.entry.recurringHint(recurringDay)}
             </p>
           )}
-
-          <FormRow icon={<Tag className="size-4" />}>
-            <Select
-              value={selectedCategoryId}
-              onValueChange={(value) => setCategoryId(value ?? "")}
-            >
-              <SelectTrigger
-                id="entry-category"
-                className={rowSelectTriggerClass}
-                aria-label={copy.entry.tags}
-              >
-                {selectedCategory ? (
-                  <CategoryOption category={selectedCategory} />
-                ) : (
-                  <span className="text-muted-foreground lowercase">
-                    {copy.entry.tags}
-                  </span>
-                )}
-              </SelectTrigger>
-              <SelectContent>
-                {filteredCategories.map((category) => (
-                  <SelectItem key={category.id} value={category.id}>
-                    <CategoryOption category={category} />
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </FormRow>
         </div>
 
         {error && (

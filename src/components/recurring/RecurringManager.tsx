@@ -22,6 +22,7 @@ import { MoneyInput } from "@/components/ui/money-input";
 import { copy } from "@/lib/copy";
 import { expenseClass, incomeClass } from "@/lib/design";
 import { formatCurrency, formatSlashDate } from "@/lib/format";
+import { resolveDefaultCategoryId } from "@/lib/resolve-default-category";
 import { appToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import type { CategoryDTO, RecurringTransactionDTO, TransactionType } from "@/types";
@@ -46,14 +47,14 @@ function buildEmptyForm(
   categories: CategoryDTO[],
   type: TransactionType = "EXPENSE",
 ): RecurringFormState {
-  const first = categories.find((category) => category.type === type);
+  const ledgerColumn = type === "INCOME" ? "INCOME" : "EXPENSE";
   return {
     type,
     amount: 0,
     description: "",
     dayOfMonth: "1",
     endsOn: "",
-    categoryId: first?.id ?? "",
+    categoryId: resolveDefaultCategoryId(categories, { type, ledgerColumn }),
   };
 }
 
@@ -90,16 +91,21 @@ export function RecurringManager({
     }
   };
 
-  const filteredCategories = useMemo(
-    () => categories.filter((category) => category.type === form.type),
-    [categories, form.type],
-  );
-
-  const selectedCategoryId = filteredCategories.some(
-    (category) => category.id === form.categoryId,
-  )
-    ? form.categoryId
-    : (filteredCategories[0]?.id ?? "");
+  const selectedCategoryId = useMemo(() => {
+    if (
+      form.categoryId &&
+      categories.some(
+        (category) =>
+          category.id === form.categoryId && category.type === form.type,
+      )
+    ) {
+      return form.categoryId;
+    }
+    return resolveDefaultCategoryId(categories, {
+      type: form.type,
+      ledgerColumn: form.type === "INCOME" ? "INCOME" : "EXPENSE",
+    });
+  }, [categories, form.categoryId, form.type]);
 
   const incomes = useMemo(
     () =>
@@ -262,7 +268,7 @@ export function RecurringManager({
               onClick={confirmDelete}
               disabled={isPending}
             >
-              {copy.categories.delete}
+              {copy.deleteConfirm.confirm}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -433,7 +439,7 @@ function CommitmentRow({
           variant="ghost"
           size="icon"
           className="size-8 text-muted-foreground hover:text-expense"
-          aria-label={copy.categories.delete}
+          aria-label={copy.deleteConfirm.confirm}
           onClick={onDelete}
         >
           <Trash2 className="size-4" />
@@ -496,14 +502,14 @@ function RecurringFormDialog({
                   key={type}
                   type="button"
                   onClick={() =>
-                    setForm((current) => {
-                      const nextCats = categories.filter((c) => c.type === type);
-                      return {
-                        ...current,
+                    setForm((current) => ({
+                      ...current,
+                      type,
+                      categoryId: resolveDefaultCategoryId(categories, {
                         type,
-                        categoryId: nextCats[0]?.id ?? "",
-                      };
-                    })
+                        ledgerColumn: type === "INCOME" ? "INCOME" : "EXPENSE",
+                      }),
+                    }))
                   }
                   className={cn(
                     "rounded-xl border px-3 py-2.5 text-sm font-medium transition-colors",

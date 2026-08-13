@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { MoneyInput } from "@/components/ui/money-input";
 import { copy } from "@/lib/copy";
 import { formatSlashDate } from "@/lib/format";
+import { resolveDefaultCategoryId } from "@/lib/resolve-default-category";
 import { appToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import type {
@@ -48,10 +49,17 @@ export function DayRegisterForm({
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const categoryId = useMemo(() => {
-    const match = categories.find((c) => c.type === type);
-    return match?.id ?? "";
-  }, [categories, type]);
+  const ledgerColumn: LedgerColumn =
+    type === "INCOME" ? "INCOME" : payMode === "cash" ? "DAILY" : "CARD";
+
+  const categoryId = useMemo(
+    () =>
+      resolveDefaultCategoryId(categories, {
+        type,
+        ledgerColumn,
+      }),
+    [categories, type, ledgerColumn],
+  );
 
   const reset = () => {
     setType("EXPENSE");
@@ -82,9 +90,6 @@ export function DayRegisterForm({
       );
       return;
     }
-
-    const ledgerColumn: LedgerColumn =
-      type === "INCOME" ? "INCOME" : payMode === "cash" ? "DAILY" : "CARD";
 
     startTransition(async () => {
       const result = await createTransactionAction({

@@ -1,11 +1,20 @@
 import Link from "next/link";
-import { ChevronRight, CreditCard, Settings, User } from "lucide-react";
+import {
+  ChevronRight,
+  LogOut,
+  Mail,
+  Shield,
+  User,
+  Wallet,
+} from "lucide-react";
+import { logoutAction } from "@/app/actions/auth";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { auth } from "@/lib/auth";
 import { copy } from "@/lib/copy";
 import { getUserSettings } from "@/lib/services/user-settings";
+import { cn } from "@/lib/utils";
 import { redirect } from "next/navigation";
 
 function subscriptionLabel(status: string) {
@@ -21,16 +30,44 @@ function subscriptionLabel(status: string) {
   }
 }
 
-const links = [
-  { href: "/menu/perfil", label: copy.menu.profile, icon: User },
-  {
-    href: "/menu/configuracoes",
-    label: copy.menu.card,
-    description: copy.menu.cardDescription,
-    icon: CreditCard,
-  },
-  { href: "/menu/configuracoes", label: copy.menu.settings, icon: Settings },
-];
+function MenuLink({
+  href,
+  label,
+  description,
+  icon: Icon,
+}: {
+  href: string;
+  label: string;
+  description?: string;
+  icon: typeof User;
+}) {
+  return (
+    <Link
+      href={href}
+      className={cn(
+        "flex items-center justify-between gap-3 rounded-2xl border border-border/60",
+        "bg-background/70 px-4 py-3.5 transition-colors hover:bg-muted/40",
+      )}
+    >
+      <span className="flex min-w-0 items-center gap-3">
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <Icon className="size-4" />
+        </span>
+        <span className="min-w-0">
+          <span className="block text-sm font-medium tracking-tight">
+            {label}
+          </span>
+          {description ? (
+            <span className="mt-0.5 block text-xs leading-snug text-muted-foreground">
+              {description}
+            </span>
+          ) : null}
+        </span>
+      </span>
+      <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+    </Link>
+  );
+}
 
 export default async function MenuPage() {
   const session = await auth();
@@ -41,61 +78,94 @@ export default async function MenuPage() {
   const settings = await getUserSettings(session.user.id);
 
   return (
-    <div className="space-y-[var(--section-gap)]">
+    <div className="space-y-8">
       <PageHeader title={copy.menu.title} description={copy.menu.subtitle} />
 
-      <Card>
-        <CardContent className="flex flex-wrap items-center justify-between gap-4 p-4">
-          <div>
-            <p className="font-medium">{settings.name ?? settings.email}</p>
-            <p className="text-sm text-muted-foreground">{settings.email}</p>
-          </div>
-          <Badge variant="secondary">
-            {subscriptionLabel(settings.subscriptionStatus)}
-          </Badge>
-        </CardContent>
-      </Card>
-
-      <div className="space-y-2">
-        {links.map((link) => {
-          const Icon = link.icon;
-          return (
-            <Link
-              key={`${link.href}-${link.label}`}
-              href={link.href}
-              className="flex items-center justify-between rounded-lg border bg-card p-4 transition-colors hover:bg-muted/50"
-            >
-              <span className="flex items-center gap-3">
-                <Icon className="size-5 text-muted-foreground" />
-                <span>
-                  <span className="block">{link.label}</span>
-                  {"description" in link && link.description ? (
-                    <span className="block text-xs text-muted-foreground">
-                      {link.description}
-                    </span>
-                  ) : null}
-                </span>
-              </span>
-              <ChevronRight className="size-4 text-muted-foreground" />
-            </Link>
-          );
-        })}
-      </div>
-
-      <div className="space-y-2 text-sm">
-        <a
-          href={`mailto:${copy.menu.feedbackEmail}?subject=Sugestão Pé-de-meia`}
-          className="block text-primary hover:underline"
+      <section className="space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          {copy.menu.sectionAccount}
+        </h2>
+        <div
+          className={cn(
+            "rounded-[1.5rem] border border-border/50",
+            "bg-gradient-to-br from-primary/[0.06] via-background to-background",
+            "px-4 py-4 shadow-sm",
+          )}
         >
-          {copy.menu.feedback}
-        </a>
-        <Link href="/termos" className="block text-muted-foreground hover:underline">
-          {copy.menu.terms}
-        </Link>
-        <Link href="/privacidade" className="block text-muted-foreground hover:underline">
-          {copy.menu.privacy}
-        </Link>
-      </div>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-base font-semibold tracking-tight">
+                {settings.name ?? settings.email}
+              </p>
+              <p className="mt-0.5 truncate text-sm text-muted-foreground">
+                {settings.email}
+              </p>
+            </div>
+            <Badge variant="secondary" className="shrink-0">
+              {subscriptionLabel(settings.subscriptionStatus)}
+            </Badge>
+          </div>
+        </div>
+        <MenuLink
+          href="/menu/perfil"
+          label={copy.menu.profile}
+          description={copy.menu.profileDescription}
+          icon={User}
+        />
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          {copy.menu.sectionCash}
+        </h2>
+        <MenuLink
+          href="/menu/configuracoes"
+          label={copy.menu.settings}
+          description={copy.menu.settingsDescription}
+          icon={Wallet}
+        />
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">
+          {copy.menu.sectionHelp}
+        </h2>
+        <div className="space-y-1 rounded-2xl border border-border/50 bg-background/60 px-2 py-2">
+          <a
+            href={`mailto:${copy.menu.feedbackEmail}?subject=Sugestão Pé-de-meia`}
+            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-primary transition-colors hover:bg-muted/40"
+          >
+            <Mail className="size-4 shrink-0" />
+            {copy.menu.feedback}
+          </a>
+          <Link
+            href="/termos"
+            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+          >
+            <Shield className="size-4 shrink-0" />
+            {copy.menu.terms}
+          </Link>
+          <Link
+            href="/privacidade"
+            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground"
+          >
+            <Shield className="size-4 shrink-0" />
+            {copy.menu.privacy}
+          </Link>
+        </div>
+      </section>
+
+      <form action={logoutAction}>
+        <Button
+          type="submit"
+          variant="outline"
+          className="w-full rounded-2xl"
+          data-testid="menu-logout-button"
+        >
+          <LogOut className="size-4" />
+          {copy.menu.signOut}
+        </Button>
+      </form>
     </div>
   );
 }
