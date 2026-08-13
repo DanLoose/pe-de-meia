@@ -70,7 +70,7 @@ async function getRecurringRules(userId: string): Promise<HorizonRuleInput[]> {
     startsOn: formatDateOnly(rule.startsOn),
     endsOn: rule.endsOn ? formatDateOnly(rule.endsOn) : null,
     categoryName: rule.category.name,
-    categoryLedgerColumn: rule.category.ledgerColumn,
+    categoryLedgerColumn: rule.ledgerColumn,
   }));
 }
 
@@ -500,3 +500,81 @@ export async function getHorizon(
     ),
   };
 }
+
+/** Single-day cell for sheets opened from Mapa (same shape as Projeção). */
+export async function getHorizonDayCell(
+  userId: string,
+  date: string,
+  today: string,
+  includeVariableEstimate = true,
+): Promise<HorizonDayCell> {
+  const todayMonthStart = `${today.slice(0, 7)}-01`;
+  if (date >= todayMonthStart) {
+    const data = await getHorizon(userId, today, DEFAULT_MONTHS, {
+      includeVariableEstimate,
+    });
+    for (const month of data.months) {
+      const cell = month.days.find((day) => day.date === date);
+      if (cell) return cell;
+    }
+  }
+
+  const [year, month] = date.split("-").map(Number);
+  await ensureRecurringTransactions(userId, date, date);
+  await ensureCardInvoices(userId, date, date);
+
+  const ledger = await getLedgerMonth(userId, year, month);
+  const row = ledger.rows.find((item) => item.date === date);
+  const prevDate = addDays(date, -1);
+  let prevBalance = 0;
+
+  if (prevDate.slice(0, 7) === date.slice(0, 7)) {
+    prevBalance =
+      ledger.rows.find((item) => item.date === prevDate)?.balance ??
+      (await getUserOpeningBalance(userId));
+  } else {
+    const [prevYear, prevMonth] = prevDate.split("-").map(Number);
+    const prevLedger = await getLedgerMonth(userId, prevYear, prevMonth);
+    prevBalance =
+      prevLedger.rows.find((item) => item.date === prevDate)?.balance ??
+      (await getUserOpeningBalance(userId));
+  }
+
+  const balance = row?.balance ?? prevBalance;
+  const rules = await getRecurringRules(userId);
+  const txs = await prisma.transaction.findMany({
+    where: { userId, date: parseDateOnly(date) },
+    include: { category: true },
+    orderBy: [{ createdAt: "asc" }],
+  });
+
+  const mapped = txs.map((tx) => ({
+    id: tx.id,
+    type: tx.type,
+    amount: Number(tx.amount),
+    description: tx.description,
+    recurringId: tx.recurringId,
+    ledgerColumn: tx.ledgerColumn,
+    categoryName: tx.category.name,
+    categoryLedgerColumn: tx.category.ledgerColumn,
+    affectsBalance: tx.affectsBalance,
+  }));
+
+  const movements = buildDayMovements(
+    date,
+    today,
+    rules,
+    mapped,
+    new Map(),
+  );
+
+  return buildDayCell(
+    date,
+    today,
+    balance,
+    prevBalance,
+    movements,
+    row ? ledgerRowHasActivity(row) : movements.length > 0,
+  );
+}
+
