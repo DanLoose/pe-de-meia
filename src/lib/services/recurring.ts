@@ -7,14 +7,13 @@ import {
   formatDateOnly,
   parseDateOnly,
 } from "@/lib/dates";
-import { resolveLedgerColumn } from "@/lib/ledger-columns";
 import { resolveCardInvoiceId } from "@/lib/services/card";
 import {
   createRecurringSchema,
   deleteRecurringSchema,
   updateRecurringSchema,
 } from "@/lib/validators/recurring";
-import type { RecurringTransactionDTO } from "@/types";
+import type { LedgerColumn, RecurringTransactionDTO } from "@/types";
 
 function todayDateOnly() {
   return format(new Date(), "yyyy-MM-dd");
@@ -32,6 +31,17 @@ function resolveEndsOn(endsOn?: string | null): Date | null {
   return endsOn ? parseDateOnly(endsOn) : null;
 }
 
+/** Forma de pagamento do compromisso: receita → INCOME; gasto → EXPENSE (à vista) ou CARD. */
+export function resolveRecurringLedgerColumn(
+  type: "INCOME" | "EXPENSE",
+  ledgerColumn?: LedgerColumn | null,
+): LedgerColumn {
+  if (type === "INCOME") return "INCOME";
+  if (ledgerColumn === "CARD") return "CARD";
+  if (ledgerColumn === "DAILY") return "DAILY";
+  return "EXPENSE";
+}
+
 function toRecurringDTO(
   recurring: Prisma.RecurringTransactionGetPayload<{ include: { category: true } }>,
 ): RecurringTransactionDTO {
@@ -47,7 +57,39 @@ function toRecurringDTO(
     categoryId: recurring.categoryId,
     categoryName: recurring.category.name,
     categoryColor: recurring.category.color,
+    ledgerColumn: recurring.ledgerColumn,
   };
+}
+
+async function syncFutureOccurrences(
+  userId: string,
+  recurringId: string,
+  ledgerColumn: LedgerColumn,
+) {
+  const today = parseDateOnly(todayDateOnly());
+  const future = await prisma.transaction.findMany({
+    where: {
+      userId,
+      recurringId,
+      date: { gte: today },
+    },
+  });
+
+  for (const tx of future) {
+    const cardInvoiceId = await resolveCardInvoiceId(
+      userId,
+      ledgerColumn,
+      tx.date,
+    );
+    await prisma.transaction.update({
+      where: { id: tx.id },
+      data: {
+        ledgerColumn,
+        affectsBalance: defaultAffectsBalance(ledgerColumn),
+        cardInvoiceId,
+      },
+    });
+  }
 }
 
 export async function getRecurringByUser(
@@ -75,16 +117,22 @@ export async function createRecurring(
     throw new Error("Categoria inválida para este tipo");
   }
 
+  const ledgerColumn = resolveRecurringLedgerColumn(
+    data.type,
+    data.ledgerColumn,
+  );
+
   const recurring = await prisma.recurringTransaction.create({
     data: {
-      userId,
-      categoryId: data.categoryId,
       type: data.type,
       amount: data.amount,
       description: data.description?.trim() || null,
       dayOfMonth: data.dayOfMonth,
       startsOn: resolveStartsOn(data.dayOfMonth, data.startsOn),
       endsOn: resolveEndsOn(data.endsOn),
+      ledgerColumn,
+      user: { connect: { id: userId } },
+      category: { connect: { id: data.categoryId } },
     },
     include: { category: true },
   });
@@ -112,14 +160,20 @@ export async function updateRecurring(
     throw new Error("Categoria inválida para este tipo");
   }
 
+  const ledgerColumn = resolveRecurringLedgerColumn(
+    data.type,
+    data.ledgerColumn,
+  );
+
   const recurring = await prisma.recurringTransaction.update({
     where: { id: data.id },
     data: {
-      categoryId: data.categoryId,
       type: data.type,
       amount: data.amount,
       description: data.description?.trim() || null,
       dayOfMonth: data.dayOfMonth,
+      ledgerColumn,
+      category: { connect: { id: data.categoryId } },
       ...(data.startsOn !== undefined
         ? { startsOn: resolveStartsOn(data.dayOfMonth, data.startsOn) }
         : {}),
@@ -128,6 +182,10 @@ export async function updateRecurring(
     },
     include: { category: true },
   });
+
+  if (existing.ledgerColumn !== ledgerColumn) {
+    await syncFutureOccurrences(userId, data.id, ledgerColumn);
+  }
 
   return toRecurringDTO(recurring);
 }
@@ -142,14 +200,13 @@ export async function deleteRecurring(userId: string, id: string): Promise<void>
     throw new Error("Recorrência não encontrada");
   }
 
-  const today = todayDateOnly();
-
   await prisma.$transaction([
+    // Remove every materialized occurrence (past + future) so deleting a
+    // simulation / compromisso doesn't leave Extrato/Mapa/Projeção noise.
     prisma.transaction.deleteMany({
       where: {
         userId,
         recurringId: data.id,
-        date: { gte: parseDateOnly(today) },
       },
     }),
     prisma.recurringTransaction.delete({ where: { id: data.id } }),
@@ -208,9 +265,9 @@ export async function ensureRecurringTransactions(
         });
 
         if (!existing) {
-          const ledgerColumn = resolveLedgerColumn(
-            null,
-            rule.category.ledgerColumn,
+          const ledgerColumn = resolveRecurringLedgerColumn(
+            rule.type,
+            rule.ledgerColumn,
           );
           const cardInvoiceId = await resolveCardInvoiceId(
             userId,

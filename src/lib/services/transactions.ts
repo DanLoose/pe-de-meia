@@ -266,6 +266,7 @@ export async function createTransaction(
           description,
           dayOfMonth,
           startsOn: defaultRecurringStartsOn(dayOfMonth, date),
+          ledgerColumn,
         },
       });
 
@@ -355,6 +356,7 @@ export async function updateTransaction(
           description,
           dayOfMonth: date.getUTCDate(),
           startsOn: defaultRecurringStartsOn(date.getUTCDate(), date),
+          ledgerColumn: resolvedColumn,
         },
       });
       recurringId = recurring.id;

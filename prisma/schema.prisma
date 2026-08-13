@@ -141,6 +141,8 @@ model RecurringTransaction {
   startsOn     DateTime        @db.Date
   endsOn       DateTime?       @db.Date
   active       Boolean         @default(true)
+  /// Como o compromisso entra no caixa: EXPENSE/DAILY = à vista; CARD = fatura.
+  ledgerColumn LedgerColumn    @default(EXPENSE)
   createdAt    DateTime        @default(now())
   updatedAt    DateTime        @updatedAt
   user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)

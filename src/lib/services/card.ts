@@ -5,7 +5,7 @@ import {
   invoiceCycleForPurchase,
 } from "@/lib/card-cycle";
 import { prisma } from "@/lib/db";
-import { parseDateOnly, utcToday } from "@/lib/dates";
+import { formatDateOnly, parseDateOnly, utcToday } from "@/lib/dates";
 import { resolveLedgerColumn } from "@/lib/ledger-columns";
 import type { LedgerColumn } from "@/types";
 
@@ -361,4 +361,33 @@ export async function updateCardAccount(
       dueDay: input.dueDay,
     },
   });
+}
+
+/** Compras no crédito (não saem do caixa) em um intervalo — sem materializar recorrentes. */
+export async function getCardPurchaseCharges(
+  userId: string,
+  startDate: string,
+  endDate: string,
+): Promise<Array<{ date: string; amount: number }>> {
+  const start = parseDateOnly(startDate);
+  const end = parseDateOnly(endDate);
+
+  const purchases = await prisma.transaction.findMany({
+    where: {
+      userId,
+      date: { gte: start, lte: end },
+      affectsBalance: false,
+      OR: [
+        { ledgerColumn: "CARD" },
+        { ledgerColumn: null, category: { ledgerColumn: "CARD" } },
+      ],
+    },
+    select: { date: true, amount: true },
+    orderBy: { date: "asc" },
+  });
+
+  return purchases.map((tx) => ({
+    date: formatDateOnly(tx.date),
+    amount: Number(tx.amount),
+  }));
 }
