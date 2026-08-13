@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Plus } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, CreditCard, Plus, Wallet } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { CommitmentMapDay } from "@/lib/commitment-map";
@@ -13,6 +13,7 @@ import {
   filterItemsForView,
   mergeDayItems,
 } from "@/lib/day-items";
+import { payModeFromLedgerColumn } from "@/lib/commitment-map";
 import { expenseClass, incomeClass, moneyClass } from "@/lib/design";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -70,10 +71,18 @@ export function MonthDayList({
   const visibleDays = useMemo(() => {
     return days.filter((day) => {
       const txs = byDate.get(day.date) ?? [];
-      const items = mergeDayItems(day.events, txs);
+      let items = mergeDayItems(day.events, txs);
+      // Past days: hide plan ghosts after occurrence was deleted in Projeção/sheet.
+      if (day.date < today) {
+        items = items.filter(
+          (item) =>
+            item.kind === "extra" ||
+            (item.kind === "plan" && item.status === "done"),
+        );
+      }
       return dayMatchesFilter(items, filter);
     });
-  }, [days, byDate, filter]);
+  }, [days, byDate, filter, today]);
 
   useEffect(() => {
     didScroll.current = false;
@@ -153,7 +162,14 @@ export function MonthDayList({
         <ul className="divide-y divide-border/40">
           {visibleDays.map((day) => {
             const txs = byDate.get(day.date) ?? [];
-            const allItems = mergeDayItems(day.events, txs);
+            let allItems = mergeDayItems(day.events, txs);
+            if (day.date < today) {
+              allItems = allItems.filter(
+                (item) =>
+                  item.kind === "extra" ||
+                  (item.kind === "plan" && item.status === "done"),
+              );
+            }
             const items = filterItemsForView(allItems, filter);
             const isToday = day.date === today;
             const isEmpty = items.length === 0;
@@ -220,6 +236,20 @@ export function MonthDayList({
                               : true;
                           const pending =
                             item.kind === "plan" && item.status === "pending";
+                          const SignIcon =
+                            type === "INCOME" ? ArrowUp : ArrowDown;
+                          const payMode =
+                            item.kind === "plan"
+                              ? item.transaction
+                                ? payModeFromLedgerColumn(
+                                    item.transaction.ledgerColumn,
+                                  )
+                                : item.event.payMode
+                              : payModeFromLedgerColumn(
+                                  item.transaction.ledgerColumn,
+                                );
+                          const PayIcon =
+                            payMode === "card" ? CreditCard : Wallet;
 
                           return (
                             <span
@@ -248,6 +278,14 @@ export function MonthDayList({
                                   aria-hidden
                                 />
                               ) : null}
+                              <SignIcon
+                                className="size-3 shrink-0 opacity-80"
+                                aria-hidden
+                              />
+                              <PayIcon
+                                className="size-3 shrink-0 opacity-80"
+                                aria-hidden
+                              />
                               <span className="truncate">
                                 {dayItemLabel(item)}
                               </span>
